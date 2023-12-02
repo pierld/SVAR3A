@@ -94,10 +94,8 @@ class CPIframe:
         #x.reset_index(drop=True,inplace=True)
         return x
 
-#TODO: /////////////
+#TODO: extraire résidus = intérêt
 class sector_estimation:
-    #? Besoin des résidus en fait
-    
     def __init__(self,df_ts,order="auto",maxlag=24,trend="n"):
         """
         Args:
@@ -123,7 +121,7 @@ class sector_estimation:
                 model_fit[crit] = self.model.fit(self.order,trend=self.trend)
         return model_fit
         
-
+#TODO: boucle sur l'ensemble des secteurs (tester si assez de données) puis extraire résidus des estimation > fichier excel 
 
 
 #%%
