@@ -191,11 +191,13 @@ d2 = eu.sector(56,False,False)
 #? =====================================================================
 #%%
 etest = sector_estimation(meta=eu,col=56)
+#etest.aic.shapiro
+#etest.aic.shapiro_complete
+#etest.bic.shapiro
+#etest.sheremirov
+#etest.sheremirov_complete
 
-#print(estimation_test.aic.plot_acorr(25))
-#restest = etest.aic.resid
-#test = eu.sector(56,False)[['price']].copy()
-#cycle, trend = sm.tsa.filters.hpfilter(test, 1600*3**4)
+
 
 
 
@@ -214,4 +216,10 @@ for i in range(len(eu.price().columns)):
     except:
         print(i,' error')
 print(str(c)+" variables")
+
+#print(estimation_test.aic.plot_acorr(25))
+#restest = etest.aic.resid
+#test = eu.sector(56,False)[['price']].copy()
+#cycle, trend = sm.tsa.filters.hpfilter(test, 1600*3**4)
+
 """
