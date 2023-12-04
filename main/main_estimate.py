@@ -4,6 +4,7 @@ import statsmodels.api as sm
 from statsmodels.tsa.api import VAR, acf
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
 
 #%%
@@ -33,60 +34,43 @@ class CPIframe:
     def __init__(self, df_q_index, df_p_index, df_w, country):
         """
         Args:
-            df_q (DataFrame): The Quantity data (log).
-            df_p (DataFrame): The Price data (log).
+            df_q_index (DataFrame): The Quantity data (index).
+            df_p_index (DataFrame): The Price data (index).
             df_w (DataFrame): The respective Weights data.
             country (str): Location available (EU27,France,Germany,Spain).
         """
         self.country = country
-        self.df_q_index = df_q_index
-        self.df_p_index = df_p_index
-        self.df_q = self.df_q_index.applymap(log_transform)
-        self.df_p = self.df_p_index.applymap(log_transform)
-        self.df_w = df_w
-        self.qt = self.qt_df(df=self.df_q)
-        self.price = self.price_df(df=self.df_p)
-        self.qt_index = self.qt_df(df=self.df_q_index)
-        self.price_index = self.price_df(df=self.df_p_index)
-        self.weights = self.weights_df()
+        #self.df_q = df_q_index.applymap(log_transform)
+        #self.df_p = df_p_index.applymap(log_transform)
+        #self.df_w = df_w
+        self.qt = self.framing(df=df_q_index,transform=True)    #Log-transformed
+        self.price = self.framing(df=df_p_index,transform=True) #Log-transformed
+        self.qt_index = self.framing(df=df_q_index)
+        self.price_index = self.framing(df=df_p_index)
+        self.weights = self.framing(df=df_w)
         self.sectors = dict(self.qt.loc['HICP'])
-    
-    def qt_df(self,df):
-        """
-        Generates a subset of the dataframe `df_q` based on the specified `country`.
-        Parameters:
-            df: quantity dataframe attribute current instance of the class `CPI`.
-        Returns:
-            pandas.DataFrame: Dataframe of Quantity series data with dates as rows.
-        """
-        x = df[df['Location']==self.country]
-        x.reset_index(drop=True,inplace=True)
-        x = x.drop(['Location'],axis=1)
-        x = x.transpose()
-        return x
-    
-    def price_df(self,df):
+        
+    def framing(self,df,transform=False):
         """
         Generates a subset of the dataframe `df` based on the specified `country`.
+        'df' = df_p_index or df_q_index or df_w > from excel data_flat
         Parameters:
-            df: price dataframe attribute current instance of the class `CPI`.
+            df: pandas.DataFrame
+            transform: log transform if True
         Returns:
-            pandas.DataFrame: Dataframe of Price series data with dates as rows
+            pandas.DataFrame: Dataframe of Quantity or Price series data with dates as rows.
         """
-        x = df[df['Location']==self.country]
+        if transform==True:
+            temp = df.applymap(log_transform)
+        else:
+            temp = df.copy()
+        x = temp[temp['Location']==self.country]
         x.reset_index(drop=True,inplace=True)
         x = x.drop(['Location'],axis=1)
         x = x.transpose()
         return x
-    
-    def weights_df(self):
-        x = self.df_w[self.df_w['Location']==self.country]
-        x.reset_index(drop=True,inplace=True)
-        x = x.drop(['Location'],axis=1)
-        x = x.transpose()
-        return x
-    
-    def sector(self,col_num,transform=True):
+        
+    def sector(self,col_num,indexx=False,transform=True):
         """
         Generates a two column [price,quantity] for the specified sector.
         Uses Log transformed data
@@ -98,43 +82,65 @@ class CPIframe:
         Returns:
             pandas.DataFrame: Dataframe of Quantity series data with dates as rows
         """
-        x = pd.concat([self.price[col_num],self.qt[col_num]],axis=1)
-        sec = list(x.loc['HICP'])[-1]
-        x = x.drop(['HICP'],axis=0)
-        x.columns = ['price','qt']
-        x = x.apply(pd.to_numeric)
+        if indexx==False:
+            x = pd.concat([self.price[col_num],self.qt[col_num]],axis=1)
+            sec = list(x.loc['HICP'])[-1]
+            x = x.drop(['HICP'],axis=0)
+            x.columns = ['price','qt']
+            x = x.apply(pd.to_numeric)
+            
+            if transform:
+                x = 100*x.diff() 
+                x = x - x.mean()
+            x = x.dropna()
+            x.coicop = sec
+            x.col = col_num
+            return x
         
-        if transform:
-            x = 100*x.diff() 
-            x = x - x.mean()
-        x = x.dropna()
-        x.coicop = sec
-        x.col = col_num
-        #x.subdates = list(x.index)
-        #x.reset_index(drop=True,inplace=True)
-        return x
-
-#TODO: Sheremirov labeling 
+        else:
+            x = pd.concat([self.price_index[col_num],self.qt_index[col_num]],axis=1)
+            sec = list(x.loc['HICP'])[-1]
+            x = x.drop(['HICP'],axis=0)
+            x.columns = ['price','qt']
+            x = x.apply(pd.to_numeric)
+            
+            x = x.dropna()
+            x.coicop = sec
+            x.col = col_num
+            return x
+    
+#* Shapiro labeling 
+#* Sheremirov labeling 
+#TODO: rolling window estimation
 class sector_estimation:
-    def __init__(self,meta,col,transform=True,order="auto",maxlag=24,trend="n"):
+    def __init__(self,meta,col,transform=True,order="auto",maxlag=24,trend="n",sheremirov_window=[1,11]):
         """
         Args:
             meta: CPIframe object
+            col: sector column number in [0,93]
         """
         self.meta = meta
-        self.df_ts_origin = meta.sector(col_num=col,transform=transform) #DataFrame from CPIframe.sector(...,transform=true) > demeaned
-        self.df_ts = self.df_ts_origin.reset_index(drop=True)
+        self.col = col
+        self.sector = meta.sector(col_num=col,transform=transform) #DataFrame from CPIframe.sector(...,transform=true) > demeaned
+        self.sector_dates = {i:x for i,x in enumerate(list(self.sector.index))}
+        self.sector_index = meta.sector(col_num=col, indexx=True)
         self.order = order
         self.maxlag = maxlag
         self.trend = trend
         #````
-        self.model = VAR(endog=self.df_ts)
+        self.sector_ts = self.sector.reset_index(drop=True)
+        self.model = VAR(endog=self.sector_ts)
         self.estimation = self.run_estimate()
         self.aic = self.estimation['aic']
         self.bic = self.estimation['bic']
-        self.aic.shapiro = self.shapiro_label(model_resid=self.aic.resid)
-        self.bic.shapiro = self.shapiro_label(model_resid=self.bic.resid)
-        self.sheremirov = self.sheremirov_label()
+        #````
+        self.aic.shapiro_complete = self.shapiro_label(model_resid=self.aic.resid)
+        self.bic.shapiro_complete = self.shapiro_label(model_resid=self.bic.resid)
+        self.aic.shapiro = self.aic.shapiro_complete[['sup+','sup-','dem+','dem-']]
+        self.bic.shapiro = self.bic.shapiro_complete[['sup+','sup-','dem+','dem-']]
+        self.sheremirov_window = sheremirov_window
+        self.sheremirov_complete = self.sheremirov_label(transitory=self.sheremirov_window)
+        self.sheremirov = self.sheremirov_complete[["dem","sup","dem_pers","dem_trans","sup_pers","sup_trans"]]
         
     def run_estimate(self):
         model_fit = {'aic':None,'bic':None}
@@ -155,12 +161,23 @@ class sector_estimation:
         # supply shock
         x['sup+'] = np.where((x['qt']>0) & (x['price']<0),1,0)
         x['sup-'] = np.where((x['qt']<0) & (x['price']>0),1,0)
+        x.index = x.index.map(self.sector_dates)                #changes index from int to original date
         return x
     
-    def sheremirov_label(self):
-        return self.meta.df_p
-
-
+    def sheremirov_label(self,transitory):
+        x = self.sector_index.copy()
+        x = 100*x.pct_change(12).dropna()
+        x = x - x.mean()
+        x[["dem","sup","dem_pers","dem_trans","sup_pers","sup_trans"]] = ""
+        x["dem"] = np.where((x['qt']>0) & (x['price']>0),1,0)
+        x["sup"] = 1 - x["dem"]
+        x["temp"] = x["dem"].rolling(11).sum()
+        x["dem_pers"] = np.where((x['dem']==1) & (x['temp']>=transitory[1]),1,0)
+        x["sup_pers"] = np.where((x['dem']==0) & (x['temp']<=transitory[0]),1,0)
+        x["dem_trans"] = np.where((x['dem']==1) & (x['temp']<transitory[1]),1,0)
+        x["sup_trans"] = np.where((x['dem']==0) & (x['temp']>transitory[0]),1,0)
+        x = x.drop("temp",axis=1)
+        return x
 
      
 #TODO: boucle sur l'ensemble des secteurs (tester si assez de données) puis extraire résidus des estimation > fichier excel 
@@ -168,17 +185,17 @@ class sector_estimation:
 #? =====================================================================
 eu = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="EU27")
 names = eu.price.loc['HICP']
-data_test = eu.sector(56)
+d1 = eu.sector(56,transform=True)
+d2 = eu.sector(56,False,False)
 
 #? =====================================================================
 #%%
 etest = sector_estimation(meta=eu,col=56)
+
 #print(estimation_test.aic.plot_acorr(25))
 #restest = etest.aic.resid
 #test = eu.sector(56,False)[['price']].copy()
 #cycle, trend = sm.tsa.filters.hpfilter(test, 1600*3**4)
-
-
 
 
 
