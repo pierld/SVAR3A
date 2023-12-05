@@ -10,6 +10,8 @@ import sys
 #%%
 #df_q = pd.read_excel("data/data_flat.xlsx",sheet_name="QT_log")
 #df_p = pd.read_excel("data/data_flat.xlsx",sheet_name="P_log")
+
+# === Data (index = HICP & Qt without log transf.) ===
 df_w = pd.read_excel("data/data_flat.xlsx",sheet_name="weights")
 df_q_index = pd.read_excel("data/data_flat.xlsx",sheet_name="QT_index")
 df_p_index = pd.read_excel("data/data_flat.xlsx",sheet_name="P_index")
@@ -72,11 +74,12 @@ class CPIframe:
         
     def sector(self,col_num,indexx=False,transform=True):
         """
-        Generates a two column [price,quantity] for the specified sector.
-        Uses Log transformed data
+        Generates a [price,quantity] table for the specified sector.
         Parameters:
             col_num: column number in `price` & `qt` objects for the sector of interest.
-            transform: if True: 
+            indexx: if False takes data from log-dataset (self.price & self.qt)
+            transform: (requires indexx=False)
+                    if True: 
                     1. 100*first_diff 
                     2. Demean
         Returns:
@@ -109,8 +112,8 @@ class CPIframe:
             x.col = col_num
             return x
     
-#* Shapiro labeling 
-#* Sheremirov labeling 
+#* Shapiro labeling > cf. SVAR_Shapiro_exp.pdf pour l'explication
+#* Sheremirov labeling
 #TODO: rolling window estimation
 class sector_estimation:
     def __init__(self,meta,col,transform=True,order="auto",maxlag=24,trend="n",sheremirov_window=[1,11]):
@@ -134,10 +137,12 @@ class sector_estimation:
         self.aic = self.estimation['aic']
         self.bic = self.estimation['bic']
         #````
+        #* Shapiro
         self.aic.shapiro_complete = self.shapiro_label(model_resid=self.aic.resid)
         self.bic.shapiro_complete = self.shapiro_label(model_resid=self.bic.resid)
         self.aic.shapiro = self.aic.shapiro_complete[['sup+','sup-','dem+','dem-']]
         self.bic.shapiro = self.bic.shapiro_complete[['sup+','sup-','dem+','dem-']]
+        #* Sheremirov
         self.sheremirov_window = sheremirov_window
         self.sheremirov_complete = self.sheremirov_label(transitory=self.sheremirov_window)
         self.sheremirov = self.sheremirov_complete[["dem","sup","dem_pers","dem_trans","sup_pers","sup_trans"]]
@@ -153,6 +158,18 @@ class sector_estimation:
         return model_fit
 
     def shapiro_label(self,model_resid):
+        """
+        Adapted from Shapiro (2022):
+        - Uses residuals of a reduced-form VAR
+            - Input requires stationary series
+            - Data processing: 
+                - 1)[log(Price_index),log(Qt_index)] 
+                - 2) 100*(first_diff) 
+                - 3) Demean
+            - Final series should be +/- stationary
+        - Expected comovements can be infered from reduced-form residuals via sign restrictions.
+            - cf. SVAR_shapiro_exp.pdf
+        """
         x = model_resid.copy()
         x[['sup+','sup-','dem+','dem-']] = ""
         # demand shock
@@ -165,9 +182,18 @@ class sector_estimation:
         return x
     
     def sheremirov_label(self,transitory):
+        """
+        Adapted from Sheremirov (2022):
+        - Uses deviation of growth rates of HICP & Demand proxy compared to 
+        """
         x = self.sector_index.copy()
         x = 100*x.pct_change(12).dropna()
-        x = x - x.mean()
+        #``` Remove 2000-2019 mean
+        x['yr'] = x.index.str.split('-').str[0].astype(int)
+        m = x[(x['yr']<=2019)&(x['yr']>=2000)].drop("yr",axis=1).mean()
+        x = x.drop('yr',axis=1)
+        x = x - m
+        #```
         x[["dem","sup","dem_pers","dem_trans","sup_pers","sup_trans"]] = ""
         x["dem"] = np.where((x['qt']>0) & (x['price']>0),1,0)
         x["sup"] = 1 - x["dem"]
@@ -197,7 +223,18 @@ etest = sector_estimation(meta=eu,col=56)
 #etest.sheremirov
 #etest.sheremirov_complete
 
+"""
+test = etest.sector_index.copy()
+test['dates'] = test.index.str.split('-').str[0].astype(int)
+test
+test2 = test[(test['dates']<=2019)&(test['dates']>=2000)]
+test2 = test2.drop("dates",axis=1)
+test2
+test2.mean()
+test = test.drop("dates",axis=1)
+test = test - test2.mean()
 
+"""
 
 
 
