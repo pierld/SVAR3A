@@ -1,4 +1,5 @@
 #%%
+# === Dependencies ===
 import pandas as pd
 import statsmodels.api as sm
 from statsmodels.tsa.api import VAR, acf
@@ -6,7 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 from typing import Union
-
 
 #%%
 # === Data (index = HICP & Qt without log transf.) ===
@@ -23,19 +23,23 @@ def log_transform(cell_value):
     try:
         return np.log(float(cell_value))
     except (ValueError, TypeError):
-        return cell_value
+        return cell_value    
 
+# ===============================================================
 # ===============================================================
 #* Shapiro labeling > cf. SVAR_Shapiro_exp.pdf pour l'explication
 #* Sheremirov labeling
 #* Shapiro smooth(1-3)
-#TODO: télécharger overall HICP monthly
+#TODO: télécharger overall HICP monthly pour voir quel % décomposé
 
 #TODO ///sector_estimation///
 #TODO: Shapiro robustness : Parametric weights
 
 #TODO ///CPIlabel///
+#TODO: la décomposition
+#TODO: monthly weights ???
 
+# ===============================================================
 # ===============================================================
 
 #%%
@@ -57,8 +61,9 @@ class CPIframe:
         self.weights = self.framing(df=df_w)
         self.sectors = dict(self.qt.loc['HICP'])
         self.dates = list(self.price.index)[1::]
+        self.inflation = self.inflation()
         
-    def framing(self,df,transform=False):
+    def framing(self,df,transform=False,variation=False):
         """
         Generates a subset of the dataframe `df` based on the specified `country`.
         'df' = df_p_index or df_q_index or df_w > from excel data_flat
@@ -69,6 +74,8 @@ class CPIframe:
             pandas.DataFrame: Dataframe of Quantity or Price series data with dates as rows.
         """
         if transform==True:
+            temp = df.applymap(log_transform)
+        elif variation==True:
             temp = df.applymap(log_transform)
         else:
             temp = df.copy()
@@ -127,9 +134,21 @@ class CPIframe:
             x.coicop = sec
             return x
     
+    def inflation(self):
+        x = pd.DataFrame(index=self.price_index.index)
+        for col in self.price_index.columns:
+            temp = self.price[[col]]
+            temp = temp.drop(['HICP'],axis=0).dropna()
+            temp = 100*temp.pct_change().dropna() #monthly rate
+            temp = temp.reindex(self.dates)
+            x[col] = temp
+            x.loc["HICP",col] = self.sectors[col]
+        return x
+    
     def flag_sectors(self):
         """
         Diagnostic of the different sectors.
+        > Checks if 'enough' data
         """
         names = self.price.loc['HICP']
         for i in range(len(self.price.columns)):
@@ -152,26 +171,34 @@ class CPIframe:
 #! //////////////////////////
 class sector_estimation:
     def __init__(self,meta:CPIframe,col:int,
-                 transform:bool=True,
                  order:Union[int, str]="auto",maxlag=24,trend="n",
                  shapiro:bool=True,
-                 shapiro_robustness:bool=False,
+                 shapiro_robust:bool=False,
                  sheremirov:bool=True,
                  sheremirov_window:list=[1,11]):
         """
         Args:
-            meta: CPIframe object
+            meta: `CPIframe` object
             col: sector column number in [0,93]
                 => If too litte data for sector 'col' then raises ValueError
-            transform: xxx
-            order: xxx
-            maxlag: xxx 
-            trend: xxx
-            sheremirov_window: xxx 
+                => VAR model is built with first diff then demeand log-transformed data
+                
+            `VAR parametrization`
+            order: if "auto" VAR order is automatically selected. Else requires an integer
+            maxlag: higher bound of order selection
+            trend: should remain "n" because data have been demeaned and are supposed to be stationary (no trend)
+            
+            `Labeling methods`
+            shapiro: if True computes baseline Shapiro(2022) labeling method with estimated VAR
+            shapiro_robustness: if True also computes alternative labeling methodologies
+            sheremirov: if True computes baseline Sheremirov(2022) labeling method
+            sheremirov_window: [Transitory,Persistent] parametrization of step classification algo step 5.
         """
-        self.meta = meta    #CPIframe object
+        self.meta = meta    
         self.col = col
-        self.sector = meta.sector(col_num=col,transform=transform) #DataFrame from CPIframe.sector(...,transform=true) > demeaned
+        #* VAR model will use log-transformed first diff and demeaned data 
+        self.sector = meta.sector(col_num=col,transform=True) 
+        
         #! Flag sector
         if len(self.sector) <= 24:
             raise ValueError("Too little data for sector {0}".format(self.col))
@@ -185,19 +212,29 @@ class sector_estimation:
         #````
         self.sector_ts = self.sector.reset_index(drop=True)
         self.model = VAR(endog=self.sector_ts)
+        if self.order!="auto" and type(self.order)!=int:
+            raise ValueError('Order should be set to "auto" or entered as an integer')
         self.estimation = self.run_estimate()
-        self.aic = self.estimation['aic']
-        self.bic = self.estimation['bic']
-        #````
-        #? Shapiro
-        if shapiro == True:
-            self.aic.shapiro = self.shapiro_label(model_resid=self.aic.resid)
-            self.bic.shapiro = self.shapiro_label(model_resid=self.bic.resid)
-            if shapiro_robustness == True:
-                self.aic.shapiro_smooth = self.shapiro_smooth(model_resid=self.aic.resid)
-                self.bic.shapiro_smooth = self.shapiro_smooth(model_resid=self.bic.resid)
+        if self.order=="auto":
+            self.aic = self.estimation['aic']
+            self.bic = self.estimation['bic']
+            #? Shapiro
+            if shapiro:
+                self.aic.shapiro = self.shapiro_label(model_resid=self.aic.resid)
+                self.bic.shapiro = self.shapiro_label(model_resid=self.bic.resid)
+                if shapiro_robust:
+                    self.aic.shapiro_robust = self.shapiro_robust(model_resid=self.aic.resid)
+                    self.bic.shapiro_robust = self.shapiro_robust(model_resid=self.bic.resid)
+        else:
+            self.estimate = self.estimation['fixed']
+            #? Shapiro
+            if shapiro:
+                self.estimate.shapiro = self.shapiro_label(model_resid=self.estimate.resid)
+                if shapiro_robust:
+                    self.estimate.shapiro_robust = self.shapiro_robust(model_resid=self.estimate.resid)
+            
         #? Sheremirov
-        if sheremirov == True:
+        if sheremirov:
             self.sheremirov_window = sheremirov_window
             self.sheremirov = self.sheremirov_label(transitory=self.sheremirov_window)
         
@@ -206,13 +243,12 @@ class sector_estimation:
         Does not need to be called outside of the class definition.
         Output is a dictionary {'aic':model.fit,'bic':model.fit} where model.fit 
         """
-        model_fit = {'aic':None,'bic':None}
+        model_fit = {'aic':None,'bic':None, 'fixed':None}
         if self.order == "auto":
-            for crit in model_fit.keys():
+            for crit in ['aic','bic']:
                 model_fit[crit] = self.model.fit(maxlags=self.maxlag,ic=crit,trend=self.trend)
         else:
-            for crit in model_fit.keys():
-                model_fit[crit] = self.model.fit(self.order,trend=self.trend)
+            model_fit["fixed"] = self.model.fit(self.order,trend=self.trend)
         return model_fit
 
     def shapiro_label(self,model_resid):
@@ -245,7 +281,7 @@ class sector_estimation:
             x[col] = x[col].astype('Int8')
         return x
 
-    def shapiro_smooth(self,model_resid):
+    def shapiro_robust(self,model_resid):
         """
         Adapted from Shapiro (2022):
         - Smoothed labeling method.
@@ -307,7 +343,7 @@ class CPIlabel:
             robustness:
         => If too litte data for sector 'col' then raises ValueError
         """
-
+#df['Sum_Columns'] = df['Column1'].fillna(0) + df['Column2'].fillna(0)
      
 #%%
 #? =====================================================================
@@ -317,7 +353,7 @@ d1 = eu.sector(56,transform=True)
 d12 = eu.sector(56,transform=False)
 d2 = eu.sector(4,transform=True)
 d3 = eu.sector(90,weights=True)
-etest = sector_estimation(meta=eu,col=64,shapiro_robustness=True)
+etest = sector_estimation(meta=eu,col=64,shapiro_robust=True)
 
 #etest.aic.shapiro
 #etest.aic.shapiro_df
@@ -326,11 +362,9 @@ etest = sector_estimation(meta=eu,col=64,shapiro_robustness=True)
 #etest.sheremirov_complete
 
 #%%
-eu.flag_sectors()
+#eu.flag_sectors()
 
-
-#%%
-#!Flag sectors with too little data
+"""
 for i in range(len(eu.price.columns)):
     x = eu.sector(col_num=i).dropna()
     if len(x)!=0:
@@ -347,9 +381,8 @@ for i in range(len(eu.price.columns)):
             print(i,'PB PRICE','-- qt :',eu.qt[i].dropna().index[1],' - ',eu.qt[i].dropna().index[-1]," -- ",names[i])
         else:
             print(i,"PB price & qt -- ",names[i])
+"""
 
-
-#%%
 #print(estimation_test.aic.plot_acorr(25))
 #restest = etest.aic.resid
 #test = eu.sector(56,False)[['price']].copy()
