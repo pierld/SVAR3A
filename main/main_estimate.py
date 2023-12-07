@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import sys
 from typing import Union
 from statistics import NormalDist
+from tqdm import tqdm
 
 #%%
 # === Data (index = HICP & Qt without log transf.) ===
@@ -46,7 +47,7 @@ def log_transform(cell_value):
 #%%
 #! //////////////////////////
 class CPIframe:
-    def __init__(self, df_q_index, df_p_index, df_w, country, start_flag=["2000","2001"],end_flag="2023"):
+    def __init__(self, df_q_index, df_p_index, df_w, country, start_flag=[2000,2001],end_flag=2023):
         """
         Args:
         - `df_q_index` (DataFrame): The Quantity data (index)
@@ -63,7 +64,7 @@ class CPIframe:
         self.price_index = self.framing(df=df_p_index)
         self.weights = self.framing(df=df_w)
         self.sectors = dict(self.qt.loc['HICP'])
-        self.dates = list(self.price.index)[1::]
+        self.dates = pd.to_datetime(list(self.price.index)[1::])
         self.inflation = self.inflation()
         self.start_flag = start_flag
         self.end_flag = end_flag
@@ -119,6 +120,7 @@ class CPIframe:
                 x = x.dropna()
                 x.coicop = sec
                 x.col = col_num
+                x.index = pd.to_datetime(x.index)
                 return x
             
             else:
@@ -131,6 +133,7 @@ class CPIframe:
                 x = x.dropna()
                 x.coicop = sec
                 x.col = col_num
+                x.index = pd.to_datetime(x.index)
                 return x
         
         else:
@@ -138,25 +141,26 @@ class CPIframe:
             sec = list(x.loc['HICP'])[-1]
             x = x.drop(['HICP'],axis=0)
             x.coicop = sec
+            x.index = pd.to_datetime(x.index)
             return x
     
     def inflation(self):
-        x = pd.DataFrame(index=self.price_index.index)
+        x = pd.DataFrame()
         for col in self.price_index.columns:
-            temp = self.price[[col]]
+            temp = self.price_index[[col]]
             temp = temp.drop(['HICP'],axis=0).dropna()
+            temp.index = pd.to_datetime(temp.index)
             temp = 100*temp.pct_change().dropna() #monthly rate
             temp = temp.reindex(self.dates)
             x[col] = temp
-            x.loc["HICP",col] = self.sectors[col]
         return x
     
     def sector_inf(self,col_num,drop=True):
-        x = pd.DataFrame(index=self.price_index.index)
+        x = pd.DataFrame()
         x['inflation'] = self.inflation[[col_num]]
-        x = x.drop(['HICP'],axis=0)
-        x["temp"] = x.index.str.split('-').str[0]
-        x["weight"] = x["temp"].apply(lambda x: self.weights.loc[int(x),col_num])
+        x.index = pd.to_datetime(x.index)
+        x["temp"] = x.index.year
+        x["weight"] = x["temp"].apply(lambda x: self.weights.loc[x,col_num])
         x = x.drop("temp",axis=1)
         x["infw"] = x["inflation"]*x["weight"]
         if drop==True:
@@ -172,8 +176,8 @@ class CPIframe:
         for i in range(L):
             x = self.sector(col_num=i)
             if len(x)!=0:
-                if end in x.index[-1]:
-                    if any(year in x.index[0] for year in start):
+                if end==x.index[-1].year:
+                    if any(yr==x.index[0].year for yr in start):
                         flag[i] = 0
         flag = {key: value if value is not None else 1 for key, value in flag.items()}
         return flag
@@ -186,11 +190,11 @@ class CPIframe:
         for i in range(len(self.price.columns)):
             x = self.sector(col_num=i)
             if len(x)!=0:
-                if "2023" in x.index[-1]:
-                    if "2000" or "2001" in x.index[0]:
-                        print(i," : OK ",x.index[0],";",x.index[-1]," -- ",len(x)," obs. -- ",names[i])
+                if self.end_flag==x.index[-1].year:
+                    if any(yr==x.index[0].year for yr in self.start_flag):
+                        print(i," : OK ",x.index[0].year,"-",x.index[0].month,";",x.index[-1].year,"-",x.index[-1].month," -- ",len(x)," obs. -- ",names[i])
                 else:
-                    print(i," : end missing -",x.index[0],";",x.index[-1]," -- ",names[i])
+                    print(i," : end missing -",x.index[0].year,"-",x.index[0].month,";",x.index[-1].year,"-",x.index[-1].month," -- ",names[i])
             else:
                 if len(self.qt[i].dropna()) == 1 and len(self.price[i].dropna()) > 1:
                     print(i,' : PB QT ','-- price :',self.price[i].dropna().index[1],';',self.price[i].dropna().index[-1]," -- ",names[i])
@@ -371,7 +375,7 @@ class sector_estimation:
         x = self.sector_index.copy()
         x = 100*x.pct_change(12).dropna()
         #``` Remove 2000-2019 mean
-        x['yr'] = x.index.str.split('-').str[0].astype(int)
+        x['yr'] = x.index.year
         m = x[(x['yr']<=2019)&(x['yr']>=2000)].drop("yr",axis=1).mean()
         x = x.drop('yr',axis=1)
         x = x - m
@@ -401,35 +405,82 @@ class sector_estimation:
 class CPIlabel:
     def __init__(self,meta:CPIframe,
                  order:Union[int, str]="auto",maxlag=24,
-                 shapiro_robust:bool=False,
+                 shap_robust:bool=True,
                  sheremirov_window:list[int,int]=[1,11]):
         """
         Args:
             - `meta`: `CPIframe` object
             - `order`: if "auto" VAR order is automatically selected. Else requires an integer
             - `maxlag`: higher bound of order selection (if order="auto")
-            - `shapiro_robustness`: if True also computes alternative labeling methodologies
+            - `shap_robustness`: if True also computes alternative labeling methodologies
             - `sheremirov_window: [Transitory,Persistent] parametrization of step classification algo step5 
             -  NB1: VAR models are built with first diff then demeand log-transformed data
         """
         self.meta=meta
         self.order=order
         self.maxlag=maxlag
-        self.shapiro_robust=shapiro_robust
+        self.shap_robust=shap_robust
         self.sheremirov_window=sheremirov_window
+        self.sheremirov = pd.DataFrame(columns=pd.MultiIndex.from_tuples([], names=['Sector','Component']))
+        if self.order=="auto":
+            self.shapiro_aic = None
+            self.shapiro_bic = None
+            if shap_robust:
+                self.shapiro_aic_r = None
+                self.shapiro_bic_r = None
+        else:
+            self.shapiro = None
+            if shap_robust:
+                self.shapiro_r = None
         self.CPIdec = self.CPI_decompose()
-        self.shapiro = None
-        self.sheremirov = None
-        if shapiro_robust:
-            self.shapiro_robust = None
+
     
     def CPI_decompose(self):
-        for col in range(0,len(self.meta.price.columns)):
-            if self.meta.flag[col]==0:
-                # Sector was flagged as missing some data
-                pass
-            else:
-                pass
+        print('>> CPI decomposition for {0} processing'.format(self.meta.country))
+        c = []
+        L = len(self.meta.price.columns)
+        if self.order=="auto":
+            temp_shapiro_aic = {}
+            temp_shapiro_bic = {}
+            if self.shap_robust:
+                temp_shapiro_aic_r = {}
+                temp_shapiro_bic_r = {}
+        else:
+            temp_shapiro = {}
+            if self.shap_robust:
+                temp_shapiro_r = {}
+
+        with tqdm(total=L, ascii=True) as pbar:
+            for col in range(0,L):
+                if self.meta.flag[col]==1:
+                    # Sector was flagged as missing some data
+                    pass
+                else:
+                    c.append(col)
+                    estimator = sector_estimation(meta=self.meta, col=col, order=self.order, maxlag=self.maxlag, shapiro_robust=self.shap_robust, sheremirov_window=self.sheremirov_window, classify_inflation=True)
+                    if self.order=="auto":                    
+                        temp_shapiro_aic[col] = estimator.aic.shapiro
+                        temp_shapiro_bic[col] = estimator.bic.shapiro
+                        if self.shap_robust:
+                            temp_shapiro_aic_r[col] = estimator.aic.shapiro_robust
+                            temp_shapiro_bic_r[col] = estimator.bic.shapiro_robust
+                    else:
+                        temp_shapiro[col] = estimator.estimate.shapiro
+                        if self.shap_robust:
+                            temp_shapiro_r[col] = estimator.estimate.shapiro_robust
+                pbar.update(1)
+        if self.order=="auto":
+            self.shapiro_aic = pd.concat([x.transpose().stack() for x in temp_shapiro_aic.values()], keys=c, names=['Sector']).unstack().transpose()
+            self.shapiro_bic = pd.concat([x.transpose().stack() for x in temp_shapiro_bic.values()], keys=c, names=['Sector']).unstack().transpose()
+            if self.shap_robust:
+                self.shapiro_aic_r = pd.concat([x.transpose().stack() for x in temp_shapiro_aic_r.values()], keys=c, names=['Sector']).unstack().transpose()
+                self.shapiro_bic_r = pd.concat([x.transpose().stack() for x in temp_shapiro_bic_r.values()], keys=c, names=['Sector']).unstack().transpose()
+        else:
+            self.shapiro = pd.concat([x.transpose().stack() for x in temp_shapiro.values()], keys=c, names=['Sector']).unstack().transpose()
+            if self.shap_robust:
+                self.shapiro_r = pd.concat([x.transpose().stack() for x in temp_shapiro_r.values()], keys=c, names=['Sector']).unstack().transpose()
+        return()
+
     
 #df['Sum_Columns'] = df['Column1'].fillna(0) + df['Column2'].fillna(0)
      
@@ -438,6 +489,21 @@ class CPIlabel:
 eu = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="EU27")
 t1 = sector_estimation(meta=eu,col=64,shapiro_robust=True)
 t2 = sector_estimation(meta=eu,col=11,shapiro_robust=True)
+cpi_eu = CPIlabel(meta=eu)
+
+#%%
+duo = ['Sector', 'Component']
+#test = pd.MultiIndex.from_tuples([], names=duo)
+#test = test.append(pd.MultiIndex.from_tuples([(64,j) for j in t1.aic.shapiro_robust], names=duo))
+multi_index = pd.MultiIndex.from_product([['aic', 'bic'], t1.aic.shapiro_robust.columns], names=duo)
+test = pd.concat([t1.aic.shapiro_robust.transpose().stack(), t1.bic.shapiro_robust.transpose().stack()], keys=['aic', 'bic'], names=['Sector']).unstack()
+#df_multi_combined = pd.concat([df_multi, df_c.stack()], keys=['C'], names=['Letter']).unstack()
+test = test.transpose()
+
+#%%
+
+
+
 
 
 
