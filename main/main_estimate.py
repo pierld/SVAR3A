@@ -46,13 +46,15 @@ def log_transform(cell_value):
 #%%
 #! //////////////////////////
 class CPIframe:
-    def __init__(self, df_q_index, df_p_index, df_w, country):
+    def __init__(self, df_q_index, df_p_index, df_w, country, start_flag=["2000","2001"],end_flag="2023"):
         """
         Args:
         - `df_q_index` (DataFrame): The Quantity data (index)
         - `df_p_index` (DataFrame): The Price data (index)
         - `df_w` (DataFrame): The respective Weights data
         - `country` (str): Location choice (EU27,France,Germany,Spain)
+        - `start_flag`
+        - `end_flag`
         """
         self.country = country
         self.qt = self.framing(df=df_q_index,transform=True)    #Log-transformed
@@ -63,6 +65,9 @@ class CPIframe:
         self.sectors = dict(self.qt.loc['HICP'])
         self.dates = list(self.price.index)[1::]
         self.inflation = self.inflation()
+        self.start_flag = start_flag
+        self.end_flag = end_flag
+        self.flag = self.flag_sector(start=self.start_flag, end=self.end_flag)
         
     def framing(self,df,transform=False,variation=False):
         """
@@ -157,15 +162,29 @@ class CPIframe:
         if drop==True:
             x = x.drop(['inflation','weight'],axis=1)
         return x
-       
-    def flag_sectors(self):
+
+    def flag_sector(self,start,end):
         """
-        Diagnostic of the different sectors.
-        > Checks if 'enough' data
+        - Checks if 'enough' data for each sector
+        """
+        L = len(self.price.columns)
+        flag = {x:None for x in range(L)}
+        for i in range(L):
+            x = self.sector(col_num=i)
+            if len(x)!=0:
+                if end in x.index[-1]:
+                    if any(year in x.index[0] for year in start):
+                        flag[i] = 0
+        flag = {key: value if value is not None else 1 for key, value in flag.items()}
+        return flag
+        
+    def flag_summary(self):
+        """
+        Summary of flag sector.
         """
         names = self.price.loc['HICP']
         for i in range(len(self.price.columns)):
-            x = self.sector(col_num=i).dropna()
+            x = self.sector(col_num=i)
             if len(x)!=0:
                 if "2023" in x.index[-1]:
                     if "2000" or "2001" in x.index[0]:
@@ -204,7 +223,7 @@ class sector_estimation:
             trend: should remain "n" because data have been demeaned and are supposed to be stationary (no trend)
             
             `Labeling methods`
-            shapiro: if True computes baseline Shapiro(2022) labeling method with estimated VAR
+            shapiro: if True computes baseline Shapiro(2022) labeling method with reduced-form estimated VAR
             shapiro_robustness: if True also computes alternative labeling methodologies
             sheremirov: if True computes baseline Sheremirov(2022) labeling method
             sheremirov_window: [Transitory,Persistent] parametrization of step classification algo step5 
@@ -215,7 +234,8 @@ class sector_estimation:
         #* VAR model will use log-transformed first diff and demeaned data 
         self.sector = meta.sector(col_num=col,transform=True)
         self.inflation = meta.sector_inf(col_num=col,drop=True)
-        self.classify_inflation = classify_inflation 
+        #!
+        self.classify_inflation = classify_inflation            
         
         #! Flag sector
         if len(self.sector) <= 24:
@@ -298,7 +318,7 @@ class sector_estimation:
         #changes index from int to original date & uses all dates
         x.index = x.index.map(self.sector_dates)
         x = x.reindex(self.meta.dates)               
-        if self.classify_inflation:
+        if self.classify_inflation==False:
             #To decerase storage size
             for col in x.columns:
                 x[col] = x[col].astype('Int8')
@@ -333,7 +353,7 @@ class sector_estimation:
         #changes index from int to original date & uses all dates
         x.index = x.index.map(self.sector_dates)     
         x = x.reindex(self.meta.dates)
-        if self.classify_inflation == False:  
+        if self.classify_inflation==False:  
             #To decerase storage size
             for col in x.columns:
                 if col not in ["dem_param","sup_param"]:
@@ -366,7 +386,7 @@ class sector_estimation:
         x["sup_trans"] = np.where((x['dem']==0) & (x['temp']>transitory[0]),1,0)
         x = x.drop(['price','qt','temp'],axis=1)
         x = x.reindex(self.meta.dates)
-        if self.classify_inflation == False:
+        if self.classify_inflation==False:
             for col in x.columns:
                 x[col] = x[col].astype('Int8')
         else:
@@ -377,33 +397,49 @@ class sector_estimation:
 
 #! //////////////////////////
 #TODO: /!\ décomposition du overall HICP car secteurs pas même VAR_order donc classification commence pas en même temps!
+#TODO: Pb comment combiner les différents tableaux output shapiro/sheremirov
 class CPIlabel:
-    def __init__(self,meta,method,robustness=None):
+    def __init__(self,meta:CPIframe,
+                 order:Union[int, str]="auto",maxlag=24,
+                 shapiro_robust:bool=False,
+                 sheremirov_window:list[int,int]=[1,11]):
         """
         Args:
-            meta: CPIframe object
-            method: "auto" or integer
-            robustness: if True computes Shapiro alternative labeling methodologies 
-        => If too litte data for sector 'col' then raises ValueError
+            - `meta`: `CPIframe` object
+            - `order`: if "auto" VAR order is automatically selected. Else requires an integer
+            - `maxlag`: higher bound of order selection (if order="auto")
+            - `shapiro_robustness`: if True also computes alternative labeling methodologies
+            - `sheremirov_window: [Transitory,Persistent] parametrization of step classification algo step5 
+            -  NB1: VAR models are built with first diff then demeand log-transformed data
         """
-        self.meta = meta
+        self.meta=meta
+        self.order=order
+        self.maxlag=maxlag
+        self.shapiro_robust=shapiro_robust
+        self.sheremirov_window=sheremirov_window
+        self.CPIdec = self.CPI_decompose()
+        self.shapiro = None
+        self.sheremirov = None
+        if shapiro_robust:
+            self.shapiro_robust = None
     
-    def CPI_decompose():
-        pass
+    def CPI_decompose(self):
+        for col in range(0,len(self.meta.price.columns)):
+            if self.meta.flag[col]==0:
+                # Sector was flagged as missing some data
+                pass
+            else:
+                pass
     
 #df['Sum_Columns'] = df['Column1'].fillna(0) + df['Column2'].fillna(0)
      
 #%%
 #? =====================================================================
-"""
 eu = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="EU27")
-names = eu.price.loc['HICP']
-d1 = eu.sector(56,transform=True)
-d12 = eu.sector(56,transform=False)
-d2 = eu.sector(4,transform=True)
-d3 = eu.sector(90,weights=True)
-etest = sector_estimation(meta=eu,col=64,shapiro_robust=True)
-"""
+t1 = sector_estimation(meta=eu,col=64,shapiro_robust=True)
+t2 = sector_estimation(meta=eu,col=11,shapiro_robust=True)
+
+
 
 #%%
 #eu.flag_sectors()
