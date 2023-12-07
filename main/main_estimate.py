@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 from typing import Union
+from statistics import NormalDist
 
 #%%
 # === Data (index = HICP & Qt without log transf.) ===
@@ -27,13 +28,13 @@ def log_transform(cell_value):
 
 # ===============================================================
 # ===============================================================
-#* Shapiro labeling > cf. SVAR_Shapiro_exp.pdf pour l'explication
-#* Sheremirov labeling
-#* Shapiro smooth(1-3)
 #TODO: télécharger overall HICP monthly pour voir quel % décomposé
 
 #TODO ///sector_estimation///
-#TODO: Shapiro robustness : Parametric weights
+#* SVAR_Shapiro_exp.pdf pour l'explication
+#* Sheremirov labeling
+#* Shapiro smooth(1-3)
+#*: Shapiro robustness : Parametric weights
 
 #TODO ///CPIlabel///
 #TODO: la décomposition
@@ -48,10 +49,10 @@ class CPIframe:
     def __init__(self, df_q_index, df_p_index, df_w, country):
         """
         Args:
-            df_q_index (DataFrame): The Quantity data (index).
-            df_p_index (DataFrame): The Price data (index).
-            df_w (DataFrame): The respective Weights data.
-            country (str): Location available (EU27,France,Germany,Spain).
+        - `df_q_index` (DataFrame): The Quantity data (index)
+        - `df_p_index` (DataFrame): The Price data (index)
+        - `df_w` (DataFrame): The respective Weights data
+        - `country` (str): Location choice (EU27,France,Germany,Spain)
         """
         self.country = country
         self.qt = self.framing(df=df_q_index,transform=True)    #Log-transformed
@@ -145,6 +146,18 @@ class CPIframe:
             x.loc["HICP",col] = self.sectors[col]
         return x
     
+    def sector_inf(self,col_num,drop=True):
+        x = pd.DataFrame(index=self.price_index.index)
+        x['inflation'] = self.inflation[[col_num]]
+        x = x.drop(['HICP'],axis=0)
+        x["temp"] = x.index.str.split('-').str[0]
+        x["weight"] = x["temp"].apply(lambda x: self.weights.loc[int(x),col_num])
+        x = x.drop("temp",axis=1)
+        x["infw"] = x["inflation"]*x["weight"]
+        if drop==True:
+            x = x.drop(['inflation','weight'],axis=1)
+        return x
+       
     def flag_sectors(self):
         """
         Diagnostic of the different sectors.
@@ -175,13 +188,15 @@ class sector_estimation:
                  shapiro:bool=True,
                  shapiro_robust:bool=False,
                  sheremirov:bool=True,
-                 sheremirov_window:list=[1,11]):
+                 sheremirov_window:list=[1,11],
+                 classify_inflation=True):
         """
         Args:
-            meta: `CPIframe` object
-            col: sector column number in [0,93]
-                => If too litte data for sector 'col' then raises ValueError
-                => VAR model is built with first diff then demeand log-transformed data
+            - `meta`: `CPIframe` object
+            - `col`: sector column number in [0,93]
+            - If too litte data for sector 'col' then raises ValueError
+            - VAR model is built with first diff then demeand log-transformed data
+            - `classify_inflation`: if False only returns Shapiro and Sheremirov classification in binary form. Otherwise returns 1(dem)*weight*inf_rate / 1(sup)*w*inf_rate
                 
             `VAR parametrization`
             order: if "auto" VAR order is automatically selected. Else requires an integer
@@ -192,12 +207,15 @@ class sector_estimation:
             shapiro: if True computes baseline Shapiro(2022) labeling method with estimated VAR
             shapiro_robustness: if True also computes alternative labeling methodologies
             sheremirov: if True computes baseline Sheremirov(2022) labeling method
-            sheremirov_window: [Transitory,Persistent] parametrization of step classification algo step 5.
+            sheremirov_window: [Transitory,Persistent] parametrization of step classification algo step5 
         """
         self.meta = meta    
         self.col = col
+        
         #* VAR model will use log-transformed first diff and demeaned data 
-        self.sector = meta.sector(col_num=col,transform=True) 
+        self.sector = meta.sector(col_num=col,transform=True)
+        self.inflation = meta.sector_inf(col_num=col,drop=True)
+        self.classify_inflation = classify_inflation 
         
         #! Flag sector
         if len(self.sector) <= 24:
@@ -209,11 +227,13 @@ class sector_estimation:
         self.order = order
         self.maxlag = maxlag
         self.trend = trend
+        self.sec_name = self.meta.sectors[self.col]
         #````
-        self.sector_ts = self.sector.reset_index(drop=True)
-        self.model = VAR(endog=self.sector_ts)
         if self.order!="auto" and type(self.order)!=int:
             raise ValueError('Order should be set to "auto" or entered as an integer')
+        
+        self.sector_ts = self.sector.reset_index(drop=True)
+        self.model = VAR(endog=self.sector_ts)
         self.estimation = self.run_estimate()
         if self.order=="auto":
             self.aic = self.estimation['aic']
@@ -262,7 +282,7 @@ class sector_estimation:
                 - 3) Demean
             - Final series should be +/- stationary
         > Expected comovements can be infered from reduced-form residuals via sign restrictions.
-            - cf. SVAR_shapiro_exp.pdf
+            - cf. `SVAR_shapiro_exp.pdf`
         """
         x = model_resid.copy()
         x[["dem","sup","dem+","dem-","sup+","sup-"]] = ""
@@ -275,16 +295,23 @@ class sector_estimation:
         x['dem'] = x['dem+'] + x['dem-']
         x['sup'] = x['sup+'] + x['sup-']
         x = x.drop(['price','qt'],axis=1)
-        x.index = x.index.map(self.sector_dates)     #changes index from int to original date
-        x = x.reindex(self.meta.dates)               #uses all dates
-        for col in x.columns:
-            x[col] = x[col].astype('Int8')
+        #changes index from int to original date & uses all dates
+        x.index = x.index.map(self.sector_dates)
+        x = x.reindex(self.meta.dates)               
+        if self.classify_inflation:
+            #To decerase storage size
+            for col in x.columns:
+                x[col] = x[col].astype('Int8')
+        else:
+            for col in x.columns:
+                x[col] = x[col]*self.inflation['infw']
         return x
 
     def shapiro_robust(self,model_resid):
         """
         Adapted from Shapiro (2022):
-        - Smoothed labeling method.
+        - Smoothed labeling method
+        - Parametric weights
         """
         x = model_resid.copy()
         for j in range(4):  
@@ -295,14 +322,25 @@ class sector_estimation:
             temp["dem"] = np.where(((temp['temp_p']>0) & (temp['temp_q']>0)) | ((temp['temp_p']<0) & (temp['temp_q']<0)),1,0)
             temp["sup"] = np.where(((temp['temp_p']>0) & (temp['temp_q']<0)) | ((temp['temp_p']<0) & (temp['temp_q']>0)),1,0)
             if j==0:
-                x[["dem","temp"]] = temp[["dem","sup"]]
+                x[["dem","sup"]] = temp[["dem","sup"]]
             else:
                 x[["dem_j{0}".format(j),"sup_j{0}".format(j)]] = temp[["dem","sup"]]
-        x = x.drop(['price','qt'],axis=1)
-        x.index = x.index.map(self.sector_dates)     #changes index from int to original date
+        x["lambda"] = x['price']*x['qt']
+        x["lambda"] = x["lambda"]*(1/x["lambda"].std())
+        x["dem_param"] = x["lambda"].apply(lambda x: NormalDist().cdf(x))
+        x["sup_param"] = 1 - x["dem_param"]
+        x = x.drop(['price','qt','lambda'],axis=1)
+        #changes index from int to original date & uses all dates
+        x.index = x.index.map(self.sector_dates)     
         x = x.reindex(self.meta.dates)
-        for col in x.columns:
-            x[col] = x[col].astype('Int8')
+        if self.classify_inflation == False:  
+            #To decerase storage size
+            for col in x.columns:
+                if col not in ["dem_param","sup_param"]:
+                    x[col] = x[col].astype('Int8')
+        else:
+            for col in x.columns:
+                x[col] = x[col]*self.inflation['infw']
         return x
        
     def sheremirov_label(self,transitory):
@@ -328,25 +366,36 @@ class sector_estimation:
         x["sup_trans"] = np.where((x['dem']==0) & (x['temp']>transitory[0]),1,0)
         x = x.drop(['price','qt','temp'],axis=1)
         x = x.reindex(self.meta.dates)
-        for col in x.columns:
-            x[col] = x[col].astype('Int8')
+        if self.classify_inflation == False:
+            for col in x.columns:
+                x[col] = x[col].astype('Int8')
+        else:
+            for col in x.columns:
+                x[col] = x[col]*self.inflation['infw']
         return x
 
 
 #! //////////////////////////
+#TODO: /!\ décomposition du overall HICP car secteurs pas même VAR_order donc classification commence pas en même temps!
 class CPIlabel:
-    def __init__(self,method,robustness=None):
+    def __init__(self,meta,method,robustness=None):
         """
         Args:
             meta: CPIframe object
-            method: 
-            robustness:
+            method: "auto" or integer
+            robustness: if True computes Shapiro alternative labeling methodologies 
         => If too litte data for sector 'col' then raises ValueError
         """
+        self.meta = meta
+    
+    def CPI_decompose():
+        pass
+    
 #df['Sum_Columns'] = df['Column1'].fillna(0) + df['Column2'].fillna(0)
      
 #%%
 #? =====================================================================
+"""
 eu = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="EU27")
 names = eu.price.loc['HICP']
 d1 = eu.sector(56,transform=True)
@@ -354,12 +403,7 @@ d12 = eu.sector(56,transform=False)
 d2 = eu.sector(4,transform=True)
 d3 = eu.sector(90,weights=True)
 etest = sector_estimation(meta=eu,col=64,shapiro_robust=True)
-
-#etest.aic.shapiro
-#etest.aic.shapiro_df
-#etest.bic.shapiro
-#etest.sheremirov
-#etest.sheremirov_complete
+"""
 
 #%%
 #eu.flag_sectors()
