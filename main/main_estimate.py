@@ -410,6 +410,7 @@ class sector_estimation:
 #TODO: /!\ décomposition du overall HICP car secteurs pas même VAR_order donc classification commence pas en même temps!
 #TODO: Sheremirov
 #TODO: Compléter les données résultats issus de CPIlabel.(...) avec les MoM% des catégories non classées ? Pour comparer au overall
+#TODO: tableaux en YoY (pour l'instant inflation = MoM)
 #* Pb comment combiner les différents tableaux output shapiro/sheremirov
 
 class CPIlabel:
@@ -570,18 +571,15 @@ class CPIlabel:
         cols_sheremirov = list(self.sheremirov_sec[0].columns)
         
         return()
-
-    
-#df['Sum_Columns'] = df['Column1'].fillna(0) + df['Column2'].fillna(0)
      
 #%%
+"""
 #? =====================================================================
 eu = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="EU27")
 t1 = sector_estimation(meta=eu,col=64,shapiro_robust=True)
 t2 = sector_estimation(meta=eu,col=11,shapiro_robust=True)
 cpi_eu = CPIlabel(meta=eu)
 
-#%%
 def retrieve_dates(df):
     l = len(df.columns)
     ind = df.index
@@ -595,24 +593,21 @@ def retrieve_dates(df):
             if len(df.loc[ind[i]].dropna())==l:
                 n = ind[i]
     return[m,n]
+"""
 
 #%%
-duo = ['Sector', 'Component']
-test = cpi_eu.shapiro_aic_sec_r
-dts = retrieve_dates(df=test)
-test2 = test.loc[:, test.columns.get_level_values('Component') == 'dem']
-res = test2.sum(axis=1).loc[dts[0]:dts[1]]
+#duo = ['Sector', 'Component']
+#test = cpi_eu.shapiro_aic_sec_r
+#dts = retrieve_dates(df=test)
+#test2 = test.loc[:, test.columns.get_level_values('Component') == 'dem']
+#res = test2.sum(axis=1).loc[dts[0]:dts[1]]
+
 #test = pd.MultiIndex.from_tuples([], names=duo)
 #test = test.append(pd.MultiIndex.from_tuples([(64,j) for j in t1.aic.shapiro_robust], names=duo))
 #multi_index = pd.MultiIndex.from_product([['aic', 'bic'], t1.aic.shapiro_robust.columns], names=duo)
 #test = pd.concat([t1.aic.shapiro_robust.transpose().stack(), t1.bic.shapiro_robust.transpose().stack()], keys=['aic', 'bic'], names=['Sector']).unstack()
 #df_multi_combined = pd.concat([df_multi, df_c.stack()], keys=['C'], names=['Letter']).unstack()
 #test = test.transpose()
-
-
-
-
-
 
 
 #%%
