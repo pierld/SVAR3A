@@ -401,7 +401,7 @@ class sector_estimation:
 
 #! //////////////////////////
 #TODO: /!\ décomposition du overall HICP car secteurs pas même VAR_order donc classification commence pas en même temps!
-#TODO: Pb comment combiner les différents tableaux output shapiro/sheremirov
+#* Pb comment combiner les différents tableaux output shapiro/sheremirov
 class CPIlabel:
     def __init__(self,meta:CPIframe,
                  order:Union[int, str]="auto",maxlag=24,
@@ -437,8 +437,24 @@ class CPIlabel:
     
     def CPI_decompose(self):
         print('>> CPI decomposition for {0} processing'.format(self.meta.country))
+        
+        def retrieve_dates(df):
+            l = len(df.columns)
+            ind = df.index
+            m = None
+            n = None
+            for i in range(len(ind)):
+                if m == None:
+                    if len(df.loc[ind[i]].dropna())==l and len(df.loc[ind[i+1]].dropna())==l:
+                        m = ind[i]
+                else:
+                    if len(df.loc[ind[i]].dropna())==l:
+                        n = ind[i]
+            return[m,n]
+        
         c = []
         L = len(self.meta.price.columns)
+        duo = ['Sector','Component']
         if self.order=="auto":
             temp_shapiro_aic = {}
             temp_shapiro_bic = {}
@@ -472,13 +488,19 @@ class CPIlabel:
         if self.order=="auto":
             self.shapiro_aic = pd.concat([x.transpose().stack() for x in temp_shapiro_aic.values()], keys=c, names=['Sector']).unstack().transpose()
             self.shapiro_bic = pd.concat([x.transpose().stack() for x in temp_shapiro_bic.values()], keys=c, names=['Sector']).unstack().transpose()
+            self.shapiro_aic.columns.names = duo
+            self.shapiro_bic.columns.names = duo
             if self.shap_robust:
                 self.shapiro_aic_r = pd.concat([x.transpose().stack() for x in temp_shapiro_aic_r.values()], keys=c, names=['Sector']).unstack().transpose()
                 self.shapiro_bic_r = pd.concat([x.transpose().stack() for x in temp_shapiro_bic_r.values()], keys=c, names=['Sector']).unstack().transpose()
+                self.shapiro_aic_r.columns.names = duo
+                self.shapiro_bic_r.columns.names = duo
         else:
             self.shapiro = pd.concat([x.transpose().stack() for x in temp_shapiro.values()], keys=c, names=['Sector']).unstack().transpose()
+            self.shapiro.columns.names = duo
             if self.shap_robust:
                 self.shapiro_r = pd.concat([x.transpose().stack() for x in temp_shapiro_r.values()], keys=c, names=['Sector']).unstack().transpose()
+                self.shapiro_r.columns.names = duo
         return()
 
     
