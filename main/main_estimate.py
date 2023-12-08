@@ -10,16 +10,21 @@ from typing import Union
 from statistics import NormalDist
 from tqdm import tqdm
 
+
 #%%
 # === Data (index = HICP & Qt without log transf.) ===
 df_w = pd.read_excel("data/data_flat.xlsx",sheet_name="weights")
 df_q_index = pd.read_excel("data/data_flat.xlsx",sheet_name="QT_index")
 df_p_index = pd.read_excel("data/data_flat.xlsx",sheet_name="P_index")
+df_overall = pd.read_excel("data/overall_hicp.xlsx",sheet_name="overall")
 #```
 df_q_index.replace("European Union - 27 countries (from 2020)","EU27",inplace=True)
 df_p_index.replace("European Union - 27 countries (from 2020)","EU27",inplace=True)
-df_p_index = df_p_index.drop(['2023-10'],axis=1)
 df_w.replace("European Union - 27 countries (from 2020)","EU27",inplace=True)
+df_overall.rename(columns={"European Union - 27 countries (from 2020)":"EU27"}, inplace=True)
+df_overall.set_index('Dates',inplace=True)
+df_overall.index = pd.to_datetime(df_overall.index)
+df_p_index = df_p_index.drop(['2023-10'],axis=1)
 
 def log_transform(cell_value):
     try:
@@ -69,6 +74,8 @@ class CPIframe:
         self.start_flag = start_flag
         self.end_flag = end_flag
         self.flag = self.flag_sector(start=self.start_flag, end=self.end_flag)
+        global df_overall
+        self.overall = 100*df_overall.dropna().pct_change()[[self.country]]
         
     def framing(self,df,transform=False,variation=False):
         """
@@ -150,7 +157,7 @@ class CPIframe:
             temp = self.price_index[[col]]
             temp = temp.drop(['HICP'],axis=0).dropna()
             temp.index = pd.to_datetime(temp.index)
-            temp = 100*temp.pct_change().dropna() #monthly rate
+            temp = 100*temp.pct_change().dropna() #monthly rate in %
             temp = temp.reindex(self.dates)
             x[col] = temp
         return x
@@ -162,7 +169,7 @@ class CPIframe:
         x["temp"] = x.index.year
         x["weight"] = x["temp"].apply(lambda x: self.weights.loc[x,col_num])
         x = x.drop("temp",axis=1)
-        x["infw"] = x["inflation"]*x["weight"]
+        x["infw"] = x["inflation"]*x["weight"]/1000
         if drop==True:
             x = x.drop(['inflation','weight'],axis=1)
         return x
@@ -238,13 +245,13 @@ class sector_estimation:
         #* VAR model will use log-transformed first diff and demeaned data 
         self.sector = meta.sector(col_num=col,transform=True)
         self.inflation = meta.sector_inf(col_num=col,drop=True)
-        #!
+        #!-----
         self.classify_inflation = classify_inflation            
         
         #! Flag sector
         if len(self.sector) <= 24:
             raise ValueError("Too little data for sector {0}".format(self.col))
-        #````
+        #*-----
         self.sector_w = meta.sector(col_num=col,weights=True)
         self.sector_dates = {i:x for i,x in enumerate(list(self.sector.index))}
         self.sector_index = meta.sector(col_num=col, indexx=True)
@@ -252,13 +259,14 @@ class sector_estimation:
         self.maxlag = maxlag
         self.trend = trend
         self.sec_name = self.meta.sectors[self.col]
-        #````
+        #*-----
         if self.order!="auto" and type(self.order)!=int:
             raise ValueError('Order should be set to "auto" or entered as an integer')
-        
+        #*-----
         self.sector_ts = self.sector.reset_index(drop=True)
         self.model = VAR(endog=self.sector_ts)
         self.estimation = self.run_estimate()
+        #*-----
         if self.order=="auto":
             self.aic = self.estimation['aic']
             self.bic = self.estimation['bic']
@@ -276,7 +284,6 @@ class sector_estimation:
                 self.estimate.shapiro = self.shapiro_label(model_resid=self.estimate.resid)
                 if shapiro_robust:
                     self.estimate.shapiro_robust = self.shapiro_robust(model_resid=self.estimate.resid)
-            
         #? Sheremirov
         if sheremirov:
             self.sheremirov_window = sheremirov_window
@@ -401,7 +408,10 @@ class sector_estimation:
 
 #! //////////////////////////
 #TODO: /!\ décomposition du overall HICP car secteurs pas même VAR_order donc classification commence pas en même temps!
+#TODO: Sheremirov
+#TODO: Compléter les données résultats issus de CPIlabel.(...) avec les MoM% des catégories non classées ? Pour comparer au overall
 #* Pb comment combiner les différents tableaux output shapiro/sheremirov
+
 class CPIlabel:
     def __init__(self,meta:CPIframe,
                  order:Union[int, str]="auto",maxlag=24,
@@ -421,17 +431,31 @@ class CPIlabel:
         self.maxlag=maxlag
         self.shap_robust=shap_robust
         self.sheremirov_window=sheremirov_window
-        self.sheremirov = pd.DataFrame(columns=pd.MultiIndex.from_tuples([], names=['Sector','Component']))
+        #*-----
+        self.sheremirov = pd.DataFrame()
+        self.sheremirov_sec = None
+        self.sheremirov_share = None
         if self.order=="auto":
-            self.shapiro_aic = None
-            self.shapiro_bic = None
+            self.shapiro_aic = pd.DataFrame()
+            self.shapiro_bic = pd.DataFrame()
+            self.shapiro_aic_sec = None
+            self.shapiro_bic_sec = None
+            self.shapiro_aic_share = None
+            self.shapiro_bic_share = None
             if shap_robust:
-                self.shapiro_aic_r = None
-                self.shapiro_bic_r = None
+                self.shapiro_aic_r = pd.DataFrame()
+                self.shapiro_bic_r = pd.DataFrame()
+                self.shapiro_aic_sec_r = None
+                self.shapiro_bic_sec_r = None
+                self.shapiro_aic_r_share = None
+                self.shapiro_bic_r_share = None
         else:
-            self.shapiro = None
+            self.shapiro = pd.DataFrame()
+            self.shapiro_sec = None
             if shap_robust:
-                self.shapiro_r = None
+                self.shapiro_r = pd.DataFrame()
+                self.shapiro_sec_r = None
+        #*-----        
         self.CPIdec = self.CPI_decompose()
 
     
@@ -451,6 +475,7 @@ class CPIlabel:
                     if len(df.loc[ind[i]].dropna())==l:
                         n = ind[i]
             return[m,n]
+        #*list(eu.dates).index(retrieve_dates(test2)[0]) #et 1
         
         c = []
         L = len(self.meta.price.columns)
@@ -465,6 +490,7 @@ class CPIlabel:
             temp_shapiro = {}
             if self.shap_robust:
                 temp_shapiro_r = {}
+        temp_sheremirov = {}
 
         with tqdm(total=L, ascii=True) as pbar:
             for col in range(0,L):
@@ -473,7 +499,13 @@ class CPIlabel:
                     pass
                 else:
                     c.append(col)
-                    estimator = sector_estimation(meta=self.meta, col=col, order=self.order, maxlag=self.maxlag, shapiro_robust=self.shap_robust, sheremirov_window=self.sheremirov_window, classify_inflation=True)
+                    #!---
+                    estimator = sector_estimation(meta=self.meta, col=col, 
+                                                  order=self.order, maxlag=self.maxlag, 
+                                                  shapiro_robust=self.shap_robust, 
+                                                  sheremirov_window=self.sheremirov_window, 
+                                                  classify_inflation=True)
+                    #!---
                     if self.order=="auto":                    
                         temp_shapiro_aic[col] = estimator.aic.shapiro
                         temp_shapiro_bic[col] = estimator.bic.shapiro
@@ -484,23 +516,59 @@ class CPIlabel:
                         temp_shapiro[col] = estimator.estimate.shapiro
                         if self.shap_robust:
                             temp_shapiro_r[col] = estimator.estimate.shapiro_robust
+                    temp_sheremirov[col] = estimator.sheremirov
                 pbar.update(1)
+                
+        #?-----SHAPIRO(2022)
         if self.order=="auto":
-            self.shapiro_aic = pd.concat([x.transpose().stack() for x in temp_shapiro_aic.values()], keys=c, names=['Sector']).unstack().transpose()
-            self.shapiro_bic = pd.concat([x.transpose().stack() for x in temp_shapiro_bic.values()], keys=c, names=['Sector']).unstack().transpose()
-            self.shapiro_aic.columns.names = duo
-            self.shapiro_bic.columns.names = duo
+            self.shapiro_aic_sec = pd.concat([x.transpose().stack() for x in temp_shapiro_aic.values()], keys=c, names=['Sector']).unstack().transpose()
+            self.shapiro_bic_sec = pd.concat([x.transpose().stack() for x in temp_shapiro_bic.values()], keys=c, names=['Sector']).unstack().transpose()
+            self.shapiro_aic_sec.columns.names = duo
+            self.shapiro_bic_sec.columns.names = duo
+            sample_aic = retrieve_dates(self.shapiro_aic_sec)
+            sample_bic = retrieve_dates(self.shapiro_bic_sec)
+            cols_shapiro = list(self.shapiro_aic_sec[0].columns)
+            #test = cpi_eu.shapiro_aic_sec_r
+            #dts = retrieve_dates(df=test)
+            #test2 = test.loc[:, test.columns.get_level_values('Component') == 'dem']
+            #res = test2.sum(axis=1).loc[dts[0]:dts[1]]
+            for col in cols_shapiro:
+                self.shapiro_aic[col] = self.shapiro_aic_sec.loc[:, self.shapiro_aic_sec.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_aic[0]:sample_aic[1]]
+                self.shapiro_bic[col] = self.shapiro_bic_sec.loc[:, self.shapiro_bic_sec.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_bic[0]:sample_bic[1]]
             if self.shap_robust:
-                self.shapiro_aic_r = pd.concat([x.transpose().stack() for x in temp_shapiro_aic_r.values()], keys=c, names=['Sector']).unstack().transpose()
-                self.shapiro_bic_r = pd.concat([x.transpose().stack() for x in temp_shapiro_bic_r.values()], keys=c, names=['Sector']).unstack().transpose()
-                self.shapiro_aic_r.columns.names = duo
-                self.shapiro_bic_r.columns.names = duo
+                self.shapiro_aic_sec_r = pd.concat([x.transpose().stack() for x in temp_shapiro_aic_r.values()], keys=c, names=['Sector']).unstack().transpose()
+                self.shapiro_bic_sec_r = pd.concat([x.transpose().stack() for x in temp_shapiro_bic_r.values()], keys=c, names=['Sector']).unstack().transpose()
+                self.shapiro_aic_sec_r.columns.names = duo
+                self.shapiro_bic_sec_r.columns.names = duo
+                sample_aic_r = retrieve_dates(self.shapiro_aic_sec_r)
+                sample_bic_r = retrieve_dates(self.shapiro_bic_sec_r)
+                cols_shapiro_r = list(self.shapiro_aic_sec_r[0].columns)
+                for col in cols_shapiro_r:
+                    self.shapiro_aic_r[col] = self.shapiro_aic_sec_r.loc[:, self.shapiro_aic_sec_r.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_aic_r[0]:sample_aic_r[1]]
+                    self.shapiro_bic_r[col] = self.shapiro_bic_sec_r.loc[:, self.shapiro_bic_sec_r.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_bic_r[0]:sample_bic_r[1]]
+                
         else:
-            self.shapiro = pd.concat([x.transpose().stack() for x in temp_shapiro.values()], keys=c, names=['Sector']).unstack().transpose()
-            self.shapiro.columns.names = duo
+            self.shapiro_sec = pd.concat([x.transpose().stack() for x in temp_shapiro.values()], keys=c, names=['Sector']).unstack().transpose()
+            self.shapiro_sec.columns.names = duo
+            sample_estimate = retrieve_dates(self.shapiro_sec)
+            cols_shapiro = list(self.shapiro_sec[0].columns)
+            for col in cols_shapiro:
+                self.shapiro[col] = self.shapiro_sec.loc[:, self.shapiro_sec.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_estimate[0]:sample_estimate[1]]
+            
             if self.shap_robust:
-                self.shapiro_r = pd.concat([x.transpose().stack() for x in temp_shapiro_r.values()], keys=c, names=['Sector']).unstack().transpose()
-                self.shapiro_r.columns.names = duo
+                self.shapiro_sec_r = pd.concat([x.transpose().stack() for x in temp_shapiro_r.values()], keys=c, names=['Sector']).unstack().transpose()
+                self.shapiro_sec_r.columns.names = duo
+                sample_estimate_r = retrieve_dates(self.shapiro_sec_r)
+                cols_shapiro_r = list(self.shapiro_sec_r[0].columns)
+                for col in cols_shapiro:
+                    self.shapiro_r[col] = self.shapiro_sec_r.loc[:, self.shapiro_sec_r.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_estimate_r[0]:sample_estimate_r[1]]
+                
+        #?-----SHEREMIROV(2022)
+        self.sheremirov_sec = pd.concat([x.transpose().stack() for x in temp_sheremirov.values()], keys=c, names=['Sector']).unstack().transpose()
+        self.sheremirov_sec.columns.names = duo
+        sample_shemirov = retrieve_dates(self.sheremirov_sec)
+        cols_sheremirov = list(self.sheremirov_sec[0].columns)
+        
         return()
 
     
@@ -514,15 +582,33 @@ t2 = sector_estimation(meta=eu,col=11,shapiro_robust=True)
 cpi_eu = CPIlabel(meta=eu)
 
 #%%
-duo = ['Sector', 'Component']
-#test = pd.MultiIndex.from_tuples([], names=duo)
-#test = test.append(pd.MultiIndex.from_tuples([(64,j) for j in t1.aic.shapiro_robust], names=duo))
-multi_index = pd.MultiIndex.from_product([['aic', 'bic'], t1.aic.shapiro_robust.columns], names=duo)
-test = pd.concat([t1.aic.shapiro_robust.transpose().stack(), t1.bic.shapiro_robust.transpose().stack()], keys=['aic', 'bic'], names=['Sector']).unstack()
-#df_multi_combined = pd.concat([df_multi, df_c.stack()], keys=['C'], names=['Letter']).unstack()
-test = test.transpose()
+def retrieve_dates(df):
+    l = len(df.columns)
+    ind = df.index
+    m = None
+    n = None
+    for i in range(len(ind)):
+        if m == None:
+            if len(df.loc[ind[i]].dropna())==l and len(df.loc[ind[i+1]].dropna())==l:
+                m = ind[i]
+        else:
+            if len(df.loc[ind[i]].dropna())==l:
+                n = ind[i]
+    return[m,n]
 
 #%%
+duo = ['Sector', 'Component']
+test = cpi_eu.shapiro_aic_sec_r
+dts = retrieve_dates(df=test)
+test2 = test.loc[:, test.columns.get_level_values('Component') == 'dem']
+res = test2.sum(axis=1).loc[dts[0]:dts[1]]
+#test = pd.MultiIndex.from_tuples([], names=duo)
+#test = test.append(pd.MultiIndex.from_tuples([(64,j) for j in t1.aic.shapiro_robust], names=duo))
+#multi_index = pd.MultiIndex.from_product([['aic', 'bic'], t1.aic.shapiro_robust.columns], names=duo)
+#test = pd.concat([t1.aic.shapiro_robust.transpose().stack(), t1.bic.shapiro_robust.transpose().stack()], keys=['aic', 'bic'], names=['Sector']).unstack()
+#df_multi_combined = pd.concat([df_multi, df_c.stack()], keys=['C'], names=['Letter']).unstack()
+#test = test.transpose()
+
 
 
 
