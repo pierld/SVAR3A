@@ -703,8 +703,8 @@ class CPIlabel:
                 mask = np.triu(np.ones_like(self.supply_corr_v, dtype=bool),k=1)
                 sns.heatmap(self.supply_corr_v, annot=True, fmt='.2f', cmap="BuPu", linewidths=0.3, vmax=1, mask=mask)
             else:
-                mask = np.triu(np.ones_like(self.supply_corr_v, dtype=bool),k=1)
-                sns.heatmap(self.supply_corr_v, annot=True, fmt='.2f', cmap="BuPu", linewidths=0.3, vmax=1, mask=mask)
+                mask = np.triu(np.ones_like(self.demand_corr_v, dtype=bool),k=1)
+                sns.heatmap(self.demand_corr_v, annot=True, fmt='.2f', cmap="BuPu", linewidths=0.3, vmax=1, mask=mask)
             return
     
     def plot_stack(self,df,unclassified:bool=True,year:int=2015):
