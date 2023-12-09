@@ -414,7 +414,7 @@ class sector_estimation:
 #* Ecart avec inflation réalisée dans "unclassified" : écart provient des secteurs sans proxy
 #* tableaux en YoY (pour l'instant inflation = MoM)
 #* Pb comment combiner les différents tableaux output shapiro/sheremirov
-#TODO: variance covariance matrix
+#* variance covariance matrix
 
 class CPIlabel:
     def __init__(self,meta:CPIframe,
@@ -427,10 +427,44 @@ class CPIlabel:
             - `meta`: `CPIframe` object
             - `order`: if "auto" VAR order is automatically selected. Else requires an integer
             - `maxlag`: higher bound of order selection (if order="auto")
-            - `shap_robustness`: if True also computes alternative labeling methodologies
+            - `shap_robust`: if True also computes alternative labeling methodologies
             - `sheremirov_window: [Transitory,Persistent] parametrization of step classification algo step5 
-            - `annual_rate`: output dataframes are YoY rates
+            - `annual_rate`: output dataframes are YoY rates, otherwise MoM
             -  NB1: VAR models are built with first diff then demeand log-transformed data
+
+        Attributes:        
+        self.demand_corr_v : cross-correlations b/w different methods for demand-driven contribution
+        self.supply_corr_v : same for supply
+        
+        #Shapiro classification
+        > if self.order is "auto"
+            - shapiro_aic : overall CPI classified (demand/supply & sign)
+            - shapiro_aic_sec : dataframe with all sectors classifications
+            - shapiro_bic : same with BIC criterion selected model
+            - shapiro_bic_sec : ---
+            > if shap_robust is True
+                - shapiro_aic_r : shapiro_aic but includes alternative methodologies
+                - shapiro_aic_sec_r : shapiro_aic_r but includes alternative methodologies
+                - shapiro_bic_r : same with BIC criterion selected model
+                - shapiro_bic_r_share : ---
+        > self.order is an integer
+        Same objects but only one VAR of specified order was estimated for each sector (if not flagged), so no AIC/BIC
+            - shapiro
+            - shapiro_sec 
+            > if shap_robust is True:
+                - shapiro_r 
+                - shapiro_sec_r
+                
+        #Sheremirov classification
+        - sheremirov : overall CPI classified (demand/supply & sign)
+        - sheremirov_sec : ---
+
+        Methods:
+        # .correlation(comp="supply" or "demand") for heatmap
+        # .stack_plot(df,unclassified:bool=True,year:int=2015)
+            - df : should be one of self. shapiro_aic/shapiro_bic/shapiro/sheremirov
+            - unclassified : show unclassified inflation or not
+            - year : starting year on plot
         """
         self.meta=meta
         self.order=order
@@ -672,12 +706,35 @@ class CPIlabel:
                 mask = np.triu(np.ones_like(self.supply_corr_v, dtype=bool),k=1)
                 sns.heatmap(self.supply_corr_v, annot=True, fmt='.2f', cmap="BuPu", linewidths=0.3, vmax=1, mask=mask)
             return
-     
-#%%
+    
+    def plot_stack(self,df,unclassified:bool=True,year:int=2015):
+        
+        def yrindex(df):
+            x = []
+            for el in df.index:
+                if el.month==1:
+                    x.append(el.year)
+                else:
+                    x.append("")
+            return x
+        
+        if unclassified==True:
+            cols = ['dem','sup','unclassified']
+            leg = ['Demand','Supply','Unclassified']
+        else:
+            cols = ['dem','sup']
+            leg = ['Demand','Supply']
+        f = df[df.index.year>year][cols]
+        ax = f.plot(kind='bar', stacked=True, width=1, color=['cornflowerblue','tab:red','darkgray'])
+        ax.set_xticklabels(yrindex(f))
+        ax.legend(leg,loc = "upper left")
+        ax.figure.set_facecolor('white')
+        
 
+#%%
 #? =====================================================================
 #eu = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="EU27")
-#cpi_eu = CPIlabel(meta=eu)
+#pcpi_eu = CPIlabel(meta=eu)
 #cpi_eu = CPIlabel(meta=eu,order=12)
 #t1 = sector_estimation(meta=eu,col=64,shapiro_robust=True)
 #t2 = sector_estimation(meta=eu,col=11,shapiro_robust=True)
