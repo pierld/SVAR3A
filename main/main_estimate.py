@@ -4,7 +4,9 @@ import pandas as pd
 import statsmodels.api as sm
 from statsmodels.tsa.api import VAR, acf
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
+import seaborn as sns
 import sys
 from typing import Union
 from statistics import NormalDist
@@ -34,7 +36,7 @@ def log_transform(cell_value):
 
 # ===============================================================
 # ===============================================================
-#TODO: télécharger overall HICP monthly pour voir quel % décomposé
+#TODO: HICP monthly voir quel % du total décomposé + unclassified part
 
 #TODO ///sector_estimation///
 #* SVAR_Shapiro_exp.pdf pour l'explication
@@ -43,7 +45,7 @@ def log_transform(cell_value):
 #*: Shapiro robustness : Parametric weights
 
 #TODO ///CPIlabel///
-#TODO: la décomposition
+#* la décomposition
 #TODO: monthly weights ???
 
 # ===============================================================
@@ -407,17 +409,19 @@ class sector_estimation:
 
 
 #! //////////////////////////
-#TODO: /!\ décomposition du overall HICP car secteurs pas même VAR_order donc classification commence pas en même temps!
-#TODO: Sheremirov
-#TODO: Compléter les données résultats issus de CPIlabel.(...) avec les MoM% des catégories non classées ? Pour comparer au overall
-#TODO: tableaux en YoY (pour l'instant inflation = MoM)
+#* /!\ décomposition du overall HICP car secteurs pas même VAR_order donc classification commence pas en même temps!
+#* Sheremirov
+#* Ecart avec inflation réalisée dans "unclassified" : écart provient des secteurs sans proxy
+#* tableaux en YoY (pour l'instant inflation = MoM)
 #* Pb comment combiner les différents tableaux output shapiro/sheremirov
+#TODO: variance covariance matrix
 
 class CPIlabel:
     def __init__(self,meta:CPIframe,
                  order:Union[int, str]="auto",maxlag=24,
                  shap_robust:bool=True,
-                 sheremirov_window:list[int,int]=[1,11]):
+                 sheremirov_window:list[int,int]=[1,11],
+                 annual_rate:bool=True):
         """
         Args:
             - `meta`: `CPIframe` object
@@ -425,6 +429,7 @@ class CPIlabel:
             - `maxlag`: higher bound of order selection (if order="auto")
             - `shap_robustness`: if True also computes alternative labeling methodologies
             - `sheremirov_window: [Transitory,Persistent] parametrization of step classification algo step5 
+            - `annual_rate`: output dataframes are YoY rates
             -  NB1: VAR models are built with first diff then demeand log-transformed data
         """
         self.meta=meta
@@ -432,24 +437,22 @@ class CPIlabel:
         self.maxlag=maxlag
         self.shap_robust=shap_robust
         self.sheremirov_window=sheremirov_window
+        self.annual=annual_rate
+        self.demand_corr_v = pd.DataFrame()
+        self.supply_corr_v = pd.DataFrame()
         #*-----
         self.sheremirov = pd.DataFrame()
         self.sheremirov_sec = None
-        self.sheremirov_share = None
         if self.order=="auto":
             self.shapiro_aic = pd.DataFrame()
             self.shapiro_bic = pd.DataFrame()
             self.shapiro_aic_sec = None
             self.shapiro_bic_sec = None
-            self.shapiro_aic_share = None
-            self.shapiro_bic_share = None
             if shap_robust:
                 self.shapiro_aic_r = pd.DataFrame()
                 self.shapiro_bic_r = pd.DataFrame()
                 self.shapiro_aic_sec_r = None
                 self.shapiro_bic_sec_r = None
-                self.shapiro_aic_r_share = None
-                self.shapiro_bic_r_share = None
         else:
             self.shapiro = pd.DataFrame()
             self.shapiro_sec = None
@@ -458,7 +461,8 @@ class CPIlabel:
                 self.shapiro_sec_r = None
         #*-----        
         self.CPIdec = self.CPI_decompose()
-
+        self.demand_corr_v = self.demand_corr_v.corr()
+        self.supply_corr_v = self.supply_corr_v.corr()
     
     def CPI_decompose(self):
         print('>> CPI decomposition for {0} processing'.format(self.meta.country))
@@ -478,6 +482,18 @@ class CPIlabel:
             return[m,n]
         #*list(eu.dates).index(retrieve_dates(test2)[0]) #et 1
         
+        def rename_col_corr(col,mode):
+            if mode!=None:
+                if "dem" in col:
+                    return("dem_shapiro_"+mode+"_"+col.split("_")[1])
+                else:
+                    return("sup_shapiro_"+mode+"_"+col.split("_")[1])
+            else:
+                if "dem" in col:
+                    return("dem_shapiro_"+col.split("_")[1])
+                else:
+                    return("sup_shapiro_"+col.split("_")[1])
+                
         c = []
         L = len(self.meta.price.columns)
         duo = ['Sector','Component']
@@ -499,7 +515,7 @@ class CPIlabel:
                     # Sector was flagged as missing some data
                     pass
                 else:
-                    c.append(col)
+                    c.append(col)   
                     #!---
                     estimator = sector_estimation(meta=self.meta, col=col, 
                                                   order=self.order, maxlag=self.maxlag, 
@@ -529,13 +545,26 @@ class CPIlabel:
             sample_aic = retrieve_dates(self.shapiro_aic_sec)
             sample_bic = retrieve_dates(self.shapiro_bic_sec)
             cols_shapiro = list(self.shapiro_aic_sec[0].columns)
-            #test = cpi_eu.shapiro_aic_sec_r
-            #dts = retrieve_dates(df=test)
-            #test2 = test.loc[:, test.columns.get_level_values('Component') == 'dem']
-            #res = test2.sum(axis=1).loc[dts[0]:dts[1]]
+            L = int(len(cols_shapiro)/2)
+            
+            #*--(1)
             for col in cols_shapiro:
                 self.shapiro_aic[col] = self.shapiro_aic_sec.loc[:, self.shapiro_aic_sec.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_aic[0]:sample_aic[1]]
                 self.shapiro_bic[col] = self.shapiro_bic_sec.loc[:, self.shapiro_bic_sec.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_bic[0]:sample_bic[1]]
+            if self.annual:
+                self.shapiro_aic = self.shapiro_aic.rolling(12).sum().dropna()
+                self.shapiro_bic = self.shapiro_bic.rolling(12).sum().dropna()
+                self.shapiro_aic["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_aic.index[0]:self.shapiro_aic.index[-1]][self.meta.country] - self.shapiro_aic[self.shapiro_aic.columns[0]] - self.shapiro_aic[self.shapiro_aic.columns[L]] 
+                self.shapiro_bic["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_bic.index[0]:self.shapiro_bic.index[-1]][self.meta.country] - self.shapiro_bic[self.shapiro_bic.columns[0]] - self.shapiro_bic[self.shapiro_bic.columns[L]] 
+            else:
+                self.shapiro_aic["unclassified"] = self.meta.overall.loc[self.shapiro_aic.index[0]:self.shapiro_aic.index[-1]][self.meta.country] - self.shapiro_aic[self.shapiro_aic.columns[0]] - self.shapiro_aic[self.shapiro_aic.columns[L]] 
+                self.shapiro_bic["unclassified"] = self.meta.overall.loc[self.shapiro_bic.index[0]:self.shapiro_bic.index[-1]][self.meta.country] - self.shapiro_bic[self.shapiro_bic.columns[0]] - self.shapiro_bic[self.shapiro_bic.columns[L]] 
+            corr_aic = self.shapiro_aic[['dem','sup']].copy().rename(columns={"dem":"dem_shapiro_aic","sup":"sup_shapiro_aic"})
+            corr_bic = self.shapiro_bic[['dem','sup']].copy().rename(columns={"dem":"dem_shapiro_bic","sup":"sup_shapiro_bic"})
+            self.demand_corr_v = pd.concat([corr_aic[[col for col in corr_aic.columns if "dem" in col]],corr_bic[[col for col in corr_bic.columns if "dem" in col]]],axis=1,join='inner')
+            self.supply_corr_v = pd.concat([corr_aic[[col for col in corr_aic.columns if "sup" in col]],corr_bic[[col for col in corr_bic.columns if "sup" in col]]],axis=1,join='inner')
+            
+            #*--(2)
             if self.shap_robust:
                 self.shapiro_aic_sec_r = pd.concat([x.transpose().stack() for x in temp_shapiro_aic_r.values()], keys=c, names=['Sector']).unstack().transpose()
                 self.shapiro_bic_sec_r = pd.concat([x.transpose().stack() for x in temp_shapiro_bic_r.values()], keys=c, names=['Sector']).unstack().transpose()
@@ -544,42 +573,120 @@ class CPIlabel:
                 sample_aic_r = retrieve_dates(self.shapiro_aic_sec_r)
                 sample_bic_r = retrieve_dates(self.shapiro_bic_sec_r)
                 cols_shapiro_r = list(self.shapiro_aic_sec_r[0].columns)
+                L_r = int(len(cols_shapiro_r)/2)
+                
+                #*--(2.1)
                 for col in cols_shapiro_r:
                     self.shapiro_aic_r[col] = self.shapiro_aic_sec_r.loc[:, self.shapiro_aic_sec_r.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_aic_r[0]:sample_aic_r[1]]
                     self.shapiro_bic_r[col] = self.shapiro_bic_sec_r.loc[:, self.shapiro_bic_sec_r.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_bic_r[0]:sample_bic_r[1]]
+                
+                #*--(2.2)
+                if self.annual:
+                    self.shapiro_aic_r = self.shapiro_aic_r.rolling(12).sum().dropna()
+                    self.shapiro_bic_r = self.shapiro_bic_r.rolling(12).sum().dropna()
+                    self.shapiro_aic_r["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_aic_r.index[0]:self.shapiro_aic_r.index[-1]][self.meta.country] - self.shapiro_aic_r[self.shapiro_aic_r.columns[0]] - self.shapiro_aic_r[self.shapiro_aic_r.columns[L_r]]
+                    self.shapiro_bic_r["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_bic_r.index[0]:self.shapiro_bic_r.index[-1]][self.meta.country] - self.shapiro_bic_r[self.shapiro_bic_r.columns[0]] - self.shapiro_bic_r[self.shapiro_bic_r.columns[L_r]]
+                else:
+                    self.shapiro_aic_r["unclassified"] = self.meta.overall.loc[self.shapiro_aic_r.index[0]:self.shapiro_aic_r.index[-1]][self.meta.country] - self.shapiro_aic_r[self.shapiro_aic_r.columns[0]] - self.shapiro_aic_r[self.shapiro_aic_r.columns[L_r]]
+                    self.shapiro_bic_r["unclassified"] = self.meta.overall.loc[self.shapiro_bic_r.index[0]:self.shapiro_bic_r.index[-1]][self.meta.country] - self.shapiro_bic_r[self.shapiro_bic_r.columns[0]] - self.shapiro_bic_r[self.shapiro_bic_r.columns[L_r]]
+                corr_aic_r = self.shapiro_aic_r[[col for col in self.shapiro_aic_r.columns if "_" in col]].copy()
+                corr_aic_r.rename(columns={col:rename_col_corr(col,mode="aic") for col in corr_aic_r.columns},inplace=True)
+                corr_bic_r = self.shapiro_bic_r[[col for col in self.shapiro_bic_r.columns if "_" in col]].copy()
+                corr_bic_r.rename(columns={col:rename_col_corr(col,mode="bic") for col in corr_bic_r.columns},inplace=True)
+                self.demand_corr_v = pd.concat([self.demand_corr_v,corr_aic_r[[col for col in corr_aic_r.columns if "dem" in col]],corr_bic_r[[col for col in corr_bic_r.columns if "dem" in col]]],axis=1,join='inner')
+                self.supply_corr_v = pd.concat([self.supply_corr_v,corr_aic_r[[col for col in corr_aic_r.columns if "sup" in col]],corr_bic_r[[col for col in corr_bic_r.columns if "sup" in col]]],axis=1,join='inner')
+                
                 
         else:
             self.shapiro_sec = pd.concat([x.transpose().stack() for x in temp_shapiro.values()], keys=c, names=['Sector']).unstack().transpose()
             self.shapiro_sec.columns.names = duo
             sample_estimate = retrieve_dates(self.shapiro_sec)
             cols_shapiro = list(self.shapiro_sec[0].columns)
+            L = int(len(cols_shapiro)/2)
+            
+            #*--(1)
             for col in cols_shapiro:
                 self.shapiro[col] = self.shapiro_sec.loc[:, self.shapiro_sec.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_estimate[0]:sample_estimate[1]]
+            if self.annual:
+                self.shapiro = self.shapiro.rolling(12).sum().dropna()
+                self.shapiro["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro.index[0]:self.shapiro.index[-1]][self.meta.country] - self.shapiro[self.shapiro.columns[0]] - self.shapiro[self.shapiro.columns[L]] 
+            else:
+                self.shapiro["unclassified"] = self.meta.overall.loc[self.shapiro.index[0]:self.shapiro.index[-1]][self.meta.country] - self.shapiro[self.shapiro.columns[0]] - self.shapiro[self.shapiro.columns[L]] 
+            corr_estime = self.shapiro[['dem','sup']].copy().rename(columns={"dem":"dem_shapiro","sup":"sup_shapiro"})
+            self.demand_corr_v = corr_estime[[col for col in corr_estime.columns if "dem" in col]].copy()
+            self.supply_corr_v = corr_estime[[col for col in corr_estime.columns if "sup" in col]].copy()
             
+            #*--(2)
             if self.shap_robust:
                 self.shapiro_sec_r = pd.concat([x.transpose().stack() for x in temp_shapiro_r.values()], keys=c, names=['Sector']).unstack().transpose()
                 self.shapiro_sec_r.columns.names = duo
                 sample_estimate_r = retrieve_dates(self.shapiro_sec_r)
                 cols_shapiro_r = list(self.shapiro_sec_r[0].columns)
-                for col in cols_shapiro:
+                L_r = int(len(cols_shapiro_r)/2)
+                #*--(2.1)
+                for col in cols_shapiro_r:
                     self.shapiro_r[col] = self.shapiro_sec_r.loc[:, self.shapiro_sec_r.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_estimate_r[0]:sample_estimate_r[1]]
                 
+                #*--(2.2)
+                if self.annual:
+                    self.shapiro_r = self.shapiro_r.rolling(12).sum().dropna()
+                    self.shapiro_r["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_r.index[0]:self.shapiro_r.index[-1]][self.meta.country] - self.shapiro_r[self.shapiro_r.columns[0]] - self.shapiro_r[self.shapiro_r.columns[L_r]]
+
+                else:
+                    self.shapiro_r["unclassified"] = self.meta.overall.loc[self.shapiro_r.index[0]:self.shapiro_r.index[-1]][self.meta.country] - self.shapiro_r[self.shapiro_r.columns[0]] - self.shapiro_r[self.shapiro_r.columns[L_r]]
+                corr_estime_r = self.shapiro_r[[col for col in self.shapiro_r.columns if "_" in col]].copy()
+                corr_estime_r.rename(columns={col:rename_col_corr(col,mode=None) for col in corr_estime_r.columns},inplace=True)
+                self.demand_corr_v = pd.concat([self.demand_corr_v,corr_estime_r[[col for col in corr_estime_r.columns if "dem" in col]]],axis=1,join='inner')
+                self.supply_corr_v = pd.concat([self.supply_corr_v,corr_estime_r[[col for col in corr_estime_r.columns if "sup" in col]]],axis=1,join='inner')
+
         #?-----SHEREMIROV(2022)
         self.sheremirov_sec = pd.concat([x.transpose().stack() for x in temp_sheremirov.values()], keys=c, names=['Sector']).unstack().transpose()
         self.sheremirov_sec.columns.names = duo
         sample_shemirov = retrieve_dates(self.sheremirov_sec)
         cols_sheremirov = list(self.sheremirov_sec[0].columns)
-        
-        return()
+        L = int(len(cols_sheremirov)/2)
+        for col in cols_sheremirov:
+            self.sheremirov[col] = self.sheremirov_sec.loc[:, self.sheremirov_sec.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_shemirov[0]:sample_shemirov[1]]
+        if self.annual:
+            self.sheremirov = self.sheremirov.rolling(12).sum().dropna()
+            self.sheremirov["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.sheremirov.index[0]:self.sheremirov.index[-1]][self.meta.country] - self.sheremirov[self.sheremirov.columns[0]] - self.sheremirov[self.sheremirov.columns[L]] 
+        else:
+            self.sheremirov["unclassified"] = self.meta.overall.loc[self.sheremirov.index[0]:self.sheremirov.index[-1]][self.meta.country] - self.sheremirov[self.sheremirov.columns[0]] - self.sheremirov[self.sheremirov.columns[L]] 
+        corr_sd_sher = self.sheremirov[["dem","sup"]].copy().rename(columns={"dem":"dem_sheremirov","sup":"sup_sheremirov"})
+        self.demand_corr_v = pd.concat([self.demand_corr_v,corr_sd_sher[[col for col in corr_sd_sher.columns if "dem" in col]]],axis=1,join='inner')
+        self.supply_corr_v = pd.concat([self.supply_corr_v,corr_sd_sher[[col for col in corr_sd_sher.columns if "sup" in col]]],axis=1,join='inner')
+        return
+    
+    def correlation(self,comp:str):
+        """
+        Args:
+            - comp is "supply" or "demand"
+        """
+        if comp not in ["supply","demand"]:
+            return
+        else:
+            if comp=="supply":
+                mask = np.triu(np.ones_like(self.supply_corr_v, dtype=bool),k=1)
+                sns.heatmap(self.supply_corr_v, annot=True, fmt='.2f', cmap="BuPu", linewidths=0.3, vmax=1, mask=mask)
+            else:
+                mask = np.triu(np.ones_like(self.supply_corr_v, dtype=bool),k=1)
+                sns.heatmap(self.supply_corr_v, annot=True, fmt='.2f', cmap="BuPu", linewidths=0.3, vmax=1, mask=mask)
+            return
      
 #%%
-"""
-#? =====================================================================
-eu = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="EU27")
-t1 = sector_estimation(meta=eu,col=64,shapiro_robust=True)
-t2 = sector_estimation(meta=eu,col=11,shapiro_robust=True)
-cpi_eu = CPIlabel(meta=eu)
 
+#? =====================================================================
+#eu = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="EU27")
+#cpi_eu = CPIlabel(meta=eu)
+#cpi_eu = CPIlabel(meta=eu,order=12)
+#t1 = sector_estimation(meta=eu,col=64,shapiro_robust=True)
+#t2 = sector_estimation(meta=eu,col=11,shapiro_robust=True)
+
+
+#test["unclassified"] = eu.overall.rolling(12).sum().loc[:] - test[test.columns[0]] - test[test.columns(len(test.columns)/2)] 
+
+#%%
+"""
 def retrieve_dates(df):
     l = len(df.columns)
     ind = df.index
@@ -593,15 +700,13 @@ def retrieve_dates(df):
             if len(df.loc[ind[i]].dropna())==l:
                 n = ind[i]
     return[m,n]
+
+duo = ['Sector', 'Component']
+test = cpi_eu.shapiro_aic_sec_r
+dts = retrieve_dates(df=test)
+test2 = test.loc[:, test.columns.get_level_values('Component') == 'dem']
+res = test2.sum(axis=1).loc[dts[0]:dts[1]]
 """
-
-#%%
-#duo = ['Sector', 'Component']
-#test = cpi_eu.shapiro_aic_sec_r
-#dts = retrieve_dates(df=test)
-#test2 = test.loc[:, test.columns.get_level_values('Component') == 'dem']
-#res = test2.sum(axis=1).loc[dts[0]:dts[1]]
-
 #test = pd.MultiIndex.from_tuples([], names=duo)
 #test = test.append(pd.MultiIndex.from_tuples([(64,j) for j in t1.aic.shapiro_robust], names=duo))
 #multi_index = pd.MultiIndex.from_product([['aic', 'bic'], t1.aic.shapiro_robust.columns], names=duo)
