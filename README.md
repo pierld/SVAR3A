@@ -1,5 +1,7 @@
 # SVAR3A
 
+Run the code : https://colab.research.google.com/drive/1R9Zd2tNL-X9Sup5v9i578EBx9vH_7_jL#scrollTo=9tzMIkruruEC
+
 #* HICP monthly voir quel % du total décomposé + unclassified part
 
 #TODO ///sector_estimation///
