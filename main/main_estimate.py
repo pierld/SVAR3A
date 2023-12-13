@@ -36,23 +36,10 @@ def log_transform(cell_value):
 
 # ===============================================================
 # ===============================================================
-#TODO: HICP monthly voir quel % du total décomposé + unclassified part
-
-#TODO ///sector_estimation///
-#* SVAR_Shapiro_exp.pdf pour l'explication
-#* Sheremirov labeling
-#* Shapiro smooth(1-3)
-#*: Shapiro robustness : Parametric weights
-
-#TODO ///CPIlabel///
-#* la décomposition
-#TODO: monthly weights ???
-
-# ===============================================================
 # ===============================================================
 
 #%%
-#! //////////////////////////
+#! ////////////////////////////////////////////////////
 class CPIframe:
     def __init__(self, df_q_index, df_p_index, df_w, country, start_flag=[2000,2001],end_flag=2023):
         """
@@ -213,7 +200,7 @@ class CPIframe:
                     print(i," : PB price & qt -- ",names[i])
 
 
-#! //////////////////////////
+#! ////////////////////////////////////////////////////
 class sector_estimation:
     def __init__(self,meta:CPIframe,col:int,
                  order:Union[int, str]="auto",maxlag=24,trend="n",
@@ -408,14 +395,8 @@ class sector_estimation:
         return x
 
 
-#! //////////////////////////
-#* /!\ décomposition du overall HICP car secteurs pas même VAR_order donc classification commence pas en même temps!
-#* Sheremirov
-#* Ecart avec inflation réalisée dans "unclassified" : écart provient des secteurs sans proxy
-#* tableaux en YoY (pour l'instant inflation = MoM)
-#* Pb comment combiner les différents tableaux output shapiro/sheremirov
-#* variance covariance matrix
-
+#! ////////////////////////////////////////////////////
+#! ////////////////////////////////////////////////////
 class CPIlabel:
     def __init__(self,meta:CPIframe,
                  order:Union[int, str]="auto",maxlag=24,
@@ -785,20 +766,16 @@ class CPIlabel:
         ax.legend(leg,loc = "upper left")
         ax.figure.set_facecolor('white')
     
-                
-        
+
 
 #%%
 #? =====================================================================
-meta = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="France")
-cpi = CPIlabel(meta=meta)
+#meta = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="France")
+#cpi = CPIlabel(meta=meta)
 #cpi_eu = CPIlabel(meta=eu,order=12)
 #t1 = sector_estimation(meta=eu,col=64,shapiro_robust=True)
 #t2 = sector_estimation(meta=eu,col=11,shapiro_robust=True)
 
-#test["unclassified"] = eu.overall.rolling(12).sum().loc[:] - test[test.columns[0]] - test[test.columns(len(test.columns)/2)] 
-
-#%%
 """
 def retrieve_dates(df):
     l = len(df.columns)
@@ -819,39 +796,12 @@ test = cpi_eu.shapiro_aic_sec_r
 dts = retrieve_dates(df=test)
 test2 = test.loc[:, test.columns.get_level_values('Component') == 'dem']
 res = test2.sum(axis=1).loc[dts[0]:dts[1]]
-"""
+
 #test = pd.MultiIndex.from_tuples([], names=duo)
 #test = test.append(pd.MultiIndex.from_tuples([(64,j) for j in t1.aic.shapiro_robust], names=duo))
 #multi_index = pd.MultiIndex.from_product([['aic', 'bic'], t1.aic.shapiro_robust.columns], names=duo)
 #test = pd.concat([t1.aic.shapiro_robust.transpose().stack(), t1.bic.shapiro_robust.transpose().stack()], keys=['aic', 'bic'], names=['Sector']).unstack()
 #df_multi_combined = pd.concat([df_multi, df_c.stack()], keys=['C'], names=['Letter']).unstack()
 #test = test.transpose()
-
-
-#%%
-#eu.flag_sectors()
-
 """
-for i in range(len(eu.price.columns)):
-    x = eu.sector(col_num=i).dropna()
-    if len(x)!=0:
-        if "2023" in x.index[-1]:
-            if "2000" or "2001" in x.index[0]:
-                print(i," : ",x.index[0]," - ",x.index[-1]," -- ",len(x)," -- ",names[i])
-        else:
-            print(i," : LATE -",x.index[0]," - ",x.index[-1]," -- ",len(x)," -- ",names[i])
-    else:
-        #print(i,'PB -- qt ',len(eu.qt[i].dropna()), ' -- price ',len(eu.price[i].dropna())," -- ",names[i])
-        if len(eu.qt[i].dropna()) == 1 and len(eu.price[i].dropna()) > 1:
-            print(i,'PB QT ','-- price :',eu.price[i].dropna().index[1],' - ',eu.price[i].dropna().index[-1]," -- ",names[i])
-        elif len(eu.price[i].dropna()) == 1 and len(eu.qt[i].dropna()) > 1:
-            print(i,'PB PRICE','-- qt :',eu.qt[i].dropna().index[1],' - ',eu.qt[i].dropna().index[-1]," -- ",names[i])
-        else:
-            print(i,"PB price & qt -- ",names[i])
-"""
-
-#print(estimation_test.aic.plot_acorr(25))
-#restest = etest.aic.resid
-#test = eu.sector(56,False)[['price']].copy()
-#cycle, trend = sm.tsa.filters.hpfilter(test, 1600*3**4)
 
