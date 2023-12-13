@@ -1,0 +1,155 @@
+%\documentclass[9pt, xcolor=x11names,compress]{beamer}
+\documentclass[9pt, xcolor={dvipsnames}]{beamer}
+\usepackage{tabulary}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{mwe}% for example pictures
+\usepackage{siunitx}
+\usepackage{hyperref}
+\usepackage[many]{tcolorbox}
+\usepackage{multicol}
+
+% >>> BOXES ==============================
+\tcbset{
+    sharp corners,
+    colback = white,
+    before skip = 0.2cm,    % add extra space before the box
+    after skip = 0.5cm      % add extra space after the box
+}    
+\definecolor{main}{HTML}{e7e7e7}    
+\definecolor{sub}{HTML}{F4F4F4}
+\definecolor{sub2}{HTML}{f3f3f3}     
+\newtcolorbox{boxH}{
+    colback = sub, 
+    colframe = main, 
+    boxrule = 0pt, 
+    leftrule = 6pt % left rule weight
+}
+
+% >>> COLORS =============================
+\newcommand{\redline}[1]{\color{red}\uline{\textcolor{black}{#1}}\color{black}\:}
+\newcommand{\ghl}[1]{\colorbox{sub2}{#1}\:}
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+\newcommand{\red}[1]{\textcolor{BrickRed}{#1}}
+\newcommand{\green}[1]{\textcolor{ForestGreen}{#1}}
+
+
+% >>> BEAMER =============================
+\definecolor{PRdark}{HTML}{00008B}
+\definecolor{PRmedium}{HTML}{6082B6}
+\definecolor{PRlight}{HTML}{B6D0E2}
+
+\setbeamercolor*{structure}{bg=black,fg=PRdark}
+
+\setbeamercolor*{palette primary}{use=structure,fg=white,bg=structure.fg!75!black}
+\setbeamercolor*{palette secondary}{use=structure,fg=white,bg=structure.fg!50!black}
+%\setbeamercolor*{palette secondary}{use=structure,fg=white,bg=structure.fg!75}
+\setbeamercolor*{palette tertiary}{use=structure,fg=white, bg=structure.fg!50!black}
+\setbeamercolor*{palette quaternary}{fg=white,bg=black}
+
+\setbeamercolor{section in toc}{fg=black,bg=white}
+\setbeamercolor{alerted text}{use=structure,fg=structure.fg!50!black!80!black}
+
+\setbeamercolor{titlelike}{parent=palette primary,fg=structure.fg!50!black}
+\setbeamercolor{frametitle}{bg=gray!15!white,fg=PRdark}
+
+\setbeamercolor*{titlelike}{parent=palette primary}
+
+% - 
+\useoutertheme{infolines}
+\usefonttheme[onlymath]{serif}
+
+\setbeamertemplate{headline}[default]
+\setbeamertemplate{navigation symbols}{}    %nav
+\mode<beamer>{\setbeamertemplate{blocks}[shadow=false]}
+\setbeamercovered{transparent}
+
+\setbeamercolor{block body}{use=structure, fg=white, bg=black!20}
+\setbeamercolor{itemize item}{fg=black}
+\setbeamercolor{itemize subitem}{fg=gray} 
+\setbeamercolor{itemize subsubitem}{fg=black!20} 
+
+% >>> FOOTLINE ============================
+\makeatletter
+\setbeamertemplate{footline}
+{  
+\leavevmode%  
+\hbox{%  
+
+\begin{beamercolorbox}[wd=.333333\paperwidth,ht=2.25ex,dp=1ex,center]{author in head/foot}%    
+\usebeamerfont{author in head/foot}
+\insertshortauthor
+\end{beamercolorbox}%  
+
+\begin{beamercolorbox}[wd=0.666667\paperwidth,ht=2.25ex,dp=1ex,right]{date in head/foot}%    
+\usebeamerfont{date in head/foot}\insertshortdate{}\hspace*{2em}    
+\insertframenumber{} / \inserttotalframenumber\hspace*{2ex}  
+\end{beamercolorbox}}%  
+
+\vskip0pt%
+}
+
+\makeatother 
+\useoutertheme[footline=empty, subsection=false]{miniframes}
+
+
+% ==================================================================
+% ==================================================================
+
+\author{Pablo Barrio, Benjamin Pipaud, Pierre Rouillard}
+\title{Supply-demand driven inflation decomposition}
+\institute{xx/xx/xxxx}
+\date{\textit{@ENSAE}} 
+
+\begin{document}
+%###
+\begin{frame}[plain]
+\titlepage
+\centering
+\end{frame}
+
+%###
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+% ==================================================================
+%\hyperlink{Rocky}{\beamergotobutton{}}
+\section{Introduction}
+\begin{frame}
+  \frametitle{Table of Contents}
+  \tableofcontents[currentsection]
+\end{frame}
+%###
+\begin{frame}  
+\end{frame}
+
+
+% ==================================================================
+\section{Épargne excédentaire}
+\begin{frame}
+  \frametitle{Table of Contents}
+  \tableofcontents[currentsection]
+\end{frame}
+%###
+\begin{frame}{Principaux objectifs}
+  Intérêt du projet :
+  \begin{itemize}
+    \item Impact de la pandémie sur l'épargne des ménages en Europe et US ? 
+    \item Accumulation d'une épargne "excédentaire" ? 
+    \item Suivi et principaux moteurs de cette épargne ? 
+    \item Quelles différences entre pays ? Europe vs US ?
+  \end{itemize}
+\end{frame}
+
+% -----------
+\begin{frame}
+ \begin{center}
+		{\Huge Merci!}\\
+		\bigskip\bigskip % Vertical whitespace
+		{\LARGE pierre.rouillard@ensae.fr}
+	\end{center}
+\end{frame}
+
+\end{document}

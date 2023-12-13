@@ -467,6 +467,7 @@ class CPIlabel:
             - year : starting year on plot
         """
         self.meta=meta
+        self.meth={}
         self.order=order
         self.maxlag=maxlag
         self.shap_robust=shap_robust
@@ -482,17 +483,27 @@ class CPIlabel:
             self.shapiro_bic = pd.DataFrame()
             self.shapiro_aic_sec = None
             self.shapiro_bic_sec = None
+            self.meth["base"] = ['dem','sup']
             if shap_robust:
                 self.shapiro_aic_r = pd.DataFrame()
                 self.shapiro_bic_r = pd.DataFrame()
                 self.shapiro_aic_sec_r = None
                 self.shapiro_bic_sec_r = None
+                self.meth["j1"] = ['dem_j1','sup_j1']
+                self.meth["j2"] = ['dem_j2','sup_j2']
+                self.meth["j3"] = ['dem_j3','sup_j3']
+                self.meth["param"] = ['dem_param','sup_param']
         else:
             self.shapiro = pd.DataFrame()
             self.shapiro_sec = None
+            self.meth["base"] = ['dem','sup']
             if shap_robust:
                 self.shapiro_r = pd.DataFrame()
                 self.shapiro_sec_r = None
+                self.meth["j1"] = ['dem_j1','sup_j1']
+                self.meth["j2"] = ['dem_j2','sup_j2']
+                self.meth["j3"] = ['dem_j3','sup_j3']
+                self.meth["param"] = ['dem_param','sup_param']
         #*-----        
         self.CPIdec = self.CPI_decompose()
         self.demand_corr_v = self.demand_corr_v.corr()
@@ -590,9 +601,14 @@ class CPIlabel:
                 self.shapiro_bic = self.shapiro_bic.rolling(12).sum().dropna()
                 self.shapiro_aic["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_aic.index[0]:self.shapiro_aic.index[-1]][self.meta.country] - self.shapiro_aic[self.shapiro_aic.columns[0]] - self.shapiro_aic[self.shapiro_aic.columns[L]] 
                 self.shapiro_bic["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_bic.index[0]:self.shapiro_bic.index[-1]][self.meta.country] - self.shapiro_bic[self.shapiro_bic.columns[0]] - self.shapiro_bic[self.shapiro_bic.columns[L]] 
+                self.shapiro_aic["total"] = self.shapiro_aic["unclassified"] + self.shapiro_aic["dem"] + self.shapiro_aic["sup"]
+                self.shapiro_bic["total"] = self.shapiro_bic["unclassified"] + self.shapiro_bic["dem"] + self.shapiro_bic["sup"]
             else:
                 self.shapiro_aic["unclassified"] = self.meta.overall.loc[self.shapiro_aic.index[0]:self.shapiro_aic.index[-1]][self.meta.country] - self.shapiro_aic[self.shapiro_aic.columns[0]] - self.shapiro_aic[self.shapiro_aic.columns[L]] 
                 self.shapiro_bic["unclassified"] = self.meta.overall.loc[self.shapiro_bic.index[0]:self.shapiro_bic.index[-1]][self.meta.country] - self.shapiro_bic[self.shapiro_bic.columns[0]] - self.shapiro_bic[self.shapiro_bic.columns[L]] 
+                self.shapiro_aic["total"] = self.shapiro_aic["unclassified"] + self.shapiro_aic["dem"] + self.shapiro_aic["sup"]
+                self.shapiro_bic["total"] = self.shapiro_bic["unclassified"] + self.shapiro_bic["dem"] + self.shapiro_bic["sup"]
+                
             corr_aic = self.shapiro_aic[['dem','sup']].copy().rename(columns={"dem":"dem_shapiro_aic","sup":"sup_shapiro_aic"})
             corr_bic = self.shapiro_bic[['dem','sup']].copy().rename(columns={"dem":"dem_shapiro_bic","sup":"sup_shapiro_bic"})
             self.demand_corr_v = pd.concat([corr_aic[[col for col in corr_aic.columns if "dem" in col]],corr_bic[[col for col in corr_bic.columns if "dem" in col]]],axis=1,join='inner')
@@ -620,9 +636,13 @@ class CPIlabel:
                     self.shapiro_bic_r = self.shapiro_bic_r.rolling(12).sum().dropna()
                     self.shapiro_aic_r["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_aic_r.index[0]:self.shapiro_aic_r.index[-1]][self.meta.country] - self.shapiro_aic_r[self.shapiro_aic_r.columns[0]] - self.shapiro_aic_r[self.shapiro_aic_r.columns[L_r]]
                     self.shapiro_bic_r["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_bic_r.index[0]:self.shapiro_bic_r.index[-1]][self.meta.country] - self.shapiro_bic_r[self.shapiro_bic_r.columns[0]] - self.shapiro_bic_r[self.shapiro_bic_r.columns[L_r]]
+                    self.shapiro_aic_r["total"] = self.shapiro_aic_r["unclassified"] + self.shapiro_aic_r["dem"] + self.shapiro_aic_r["sup"]
+                    self.shapiro_bic_r["total"] = self.shapiro_bic_r["unclassified"] + self.shapiro_bic_r["dem"] + self.shapiro_bic_r["sup"]
                 else:
                     self.shapiro_aic_r["unclassified"] = self.meta.overall.loc[self.shapiro_aic_r.index[0]:self.shapiro_aic_r.index[-1]][self.meta.country] - self.shapiro_aic_r[self.shapiro_aic_r.columns[0]] - self.shapiro_aic_r[self.shapiro_aic_r.columns[L_r]]
                     self.shapiro_bic_r["unclassified"] = self.meta.overall.loc[self.shapiro_bic_r.index[0]:self.shapiro_bic_r.index[-1]][self.meta.country] - self.shapiro_bic_r[self.shapiro_bic_r.columns[0]] - self.shapiro_bic_r[self.shapiro_bic_r.columns[L_r]]
+                    self.shapiro_aic_r["total"] = self.shapiro_aic_r["unclassified"] + self.shapiro_aic_r["dem"] + self.shapiro_aic_r["sup"]
+                    self.shapiro_bic_r["total"] = self.shapiro_bic_r["unclassified"] + self.shapiro_bic_r["dem"] + self.shapiro_bic_r["sup"]
                 corr_aic_r = self.shapiro_aic_r[[col for col in self.shapiro_aic_r.columns if "_" in col]].copy()
                 corr_aic_r.rename(columns={col:rename_col_corr(col,mode="aic") for col in corr_aic_r.columns},inplace=True)
                 corr_bic_r = self.shapiro_bic_r[[col for col in self.shapiro_bic_r.columns if "_" in col]].copy()
@@ -644,8 +664,10 @@ class CPIlabel:
             if self.annual:
                 self.shapiro = self.shapiro.rolling(12).sum().dropna()
                 self.shapiro["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro.index[0]:self.shapiro.index[-1]][self.meta.country] - self.shapiro[self.shapiro.columns[0]] - self.shapiro[self.shapiro.columns[L]] 
+                self.shapiro["total"] = self.shapiro["unclassified"] + self.shapiro["dem"] + self.shapiro["sup"]
             else:
                 self.shapiro["unclassified"] = self.meta.overall.loc[self.shapiro.index[0]:self.shapiro.index[-1]][self.meta.country] - self.shapiro[self.shapiro.columns[0]] - self.shapiro[self.shapiro.columns[L]] 
+                self.shapiro["total"] = self.shapiro["unclassified"] + self.shapiro["dem"] + self.shapiro["sup"]
             corr_estime = self.shapiro[['dem','sup']].copy().rename(columns={"dem":"dem_shapiro","sup":"sup_shapiro"})
             self.demand_corr_v = corr_estime[[col for col in corr_estime.columns if "dem" in col]].copy()
             self.supply_corr_v = corr_estime[[col for col in corr_estime.columns if "sup" in col]].copy()
@@ -665,9 +687,10 @@ class CPIlabel:
                 if self.annual:
                     self.shapiro_r = self.shapiro_r.rolling(12).sum().dropna()
                     self.shapiro_r["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_r.index[0]:self.shapiro_r.index[-1]][self.meta.country] - self.shapiro_r[self.shapiro_r.columns[0]] - self.shapiro_r[self.shapiro_r.columns[L_r]]
-
+                    self.shapiro_r["total"] = self.shapiro_r["unclassified"] + self.shapiro_r["dem"] + self.shapiro_r["sup"]
                 else:
                     self.shapiro_r["unclassified"] = self.meta.overall.loc[self.shapiro_r.index[0]:self.shapiro_r.index[-1]][self.meta.country] - self.shapiro_r[self.shapiro_r.columns[0]] - self.shapiro_r[self.shapiro_r.columns[L_r]]
+                    self.shapiro_r["total"] = self.shapiro_r["unclassified"] + self.shapiro_r["dem"] + self.shapiro_r["sup"]
                 corr_estime_r = self.shapiro_r[[col for col in self.shapiro_r.columns if "_" in col]].copy()
                 corr_estime_r.rename(columns={col:rename_col_corr(col,mode=None) for col in corr_estime_r.columns},inplace=True)
                 self.demand_corr_v = pd.concat([self.demand_corr_v,corr_estime_r[[col for col in corr_estime_r.columns if "dem" in col]]],axis=1,join='inner')
@@ -684,8 +707,10 @@ class CPIlabel:
         if self.annual:
             self.sheremirov = self.sheremirov.rolling(12).sum().dropna()
             self.sheremirov["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.sheremirov.index[0]:self.sheremirov.index[-1]][self.meta.country] - self.sheremirov[self.sheremirov.columns[0]] - self.sheremirov[self.sheremirov.columns[L]] 
+            self.sheremirov["total"] = self.sheremirov["unclassified"] + self.sheremirov["dem"] + self.sheremirov["sup"]
         else:
             self.sheremirov["unclassified"] = self.meta.overall.loc[self.sheremirov.index[0]:self.sheremirov.index[-1]][self.meta.country] - self.sheremirov[self.sheremirov.columns[0]] - self.sheremirov[self.sheremirov.columns[L]] 
+            self.sheremirov["total"] = self.sheremirov["unclassified"] + self.sheremirov["dem"] + self.sheremirov["sup"]
         corr_sd_sher = self.sheremirov[["dem","sup"]].copy().rename(columns={"dem":"dem_sheremirov","sup":"sup_sheremirov"})
         self.demand_corr_v = pd.concat([self.demand_corr_v,corr_sd_sher[[col for col in corr_sd_sher.columns if "dem" in col]]],axis=1,join='inner')
         self.supply_corr_v = pd.concat([self.supply_corr_v,corr_sd_sher[[col for col in corr_sd_sher.columns if "sup" in col]]],axis=1,join='inner')
@@ -706,39 +731,70 @@ class CPIlabel:
                 mask = np.triu(np.ones_like(self.demand_corr_v, dtype=bool),k=1)
                 sns.heatmap(self.demand_corr_v, annot=True, fmt='.2f', cmap="BuPu", linewidths=0.3, vmax=1, mask=mask)
             return
-    
-    def plot_stack(self,df,unclassified:bool=True,year:int=2015):
-        
-        def yrindex(df):
+
+    def plot_stack(self,df,method="shapiro",robust=None,unclassified:bool=True,year:int=2015):
+        """
+        Args:
+            - df : attribute of CPIlabel
+                - shapiro_aic / shapiro_bic / shapiro
+                - shapiro_aic_r / shapiro_bic_r / shapiro_r
+                - sheremirov
+            - method : "shapiro" or "sheremirov"
+            - robust : in ['j1','j2','j3','param'] for "shapiro" / "complex" shows Persistent/Trans decompostion for "sheremirov"
+            - unclassified : show unclassified component
+            - unclassified : show total inflation
+        """
+                
+        def yrindex(ind):
             x = []
-            for el in df.index:
+            for el in ind:
                 if el.month==1:
                     x.append(el.year)
                 else:
                     x.append("")
             return x
-        
-        if unclassified==True:
-            cols = ['dem','sup','unclassified']
-            leg = ['Demand','Supply','Unclassified']
+
+        if method=="shapiro":
+            color = ['cornflowerblue','tab:red']
+            if robust==None:
+                cols = self.meth["base"].copy()
+            else:
+                cols = self.meth[robust].copy()
+            leg = ['Total','Demand','Supply']
+
         else:
-            cols = ['dem','sup']
-            leg = ['Demand','Supply']
-        f = df[df.index.year>year][cols]
-        ax = f.plot(kind='bar', stacked=True, width=1, color=['cornflowerblue','tab:red','darkgray'])
-        ax.set_xticklabels(yrindex(f))
+            if robust=="complex":
+                cols = ["dem_pers","dem_trans","sup_pers","sup_trans"]
+                leg = ["Total","Persistent demand","Transitory demand","Persistent supply","Transitory supply"]
+                color = ['mediumseagreen','royalblue','indianred','orange']
+            else:
+                cols = ["dem","sup"]
+                leg = ['Total','Demand','Supply']
+                color = ['cornflowerblue','tab:red']
+
+        if unclassified==True:
+            cols.append('unclassified')
+            leg.append('Unclassified')
+            color.append('darkgray')        
+        f = df[df.index.year>year][cols+['total']]
+        ind = f.index
+        f = f.reset_index(drop=True)
+        ax = f[cols].plot.bar(stacked=True, width = 1, color=color)
+        f['total'].plot(color="black",ax=ax)
+        ax.set_xticklabels(yrindex(ind))
         ax.legend(leg,loc = "upper left")
         ax.figure.set_facecolor('white')
+    
+                
         
 
 #%%
 #? =====================================================================
-#eu = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="EU27")
-#pcpi_eu = CPIlabel(meta=eu)
+meta = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="France")
+cpi = CPIlabel(meta=meta)
 #cpi_eu = CPIlabel(meta=eu,order=12)
 #t1 = sector_estimation(meta=eu,col=64,shapiro_robust=True)
 #t2 = sector_estimation(meta=eu,col=11,shapiro_robust=True)
-
 
 #test["unclassified"] = eu.overall.rolling(12).sum().loc[:] - test[test.columns[0]] - test[test.columns(len(test.columns)/2)] 
 
