@@ -15,7 +15,7 @@ In our implementation of the methodology, we let the order $p$ of the VAR be aut
 Even though he explains the classification seems to be robust to the lag order selection we would rather let it be sector-specific than adding another constraint on the methodology.
 \bigbreak
 Note that we said 75 sectors had matched proxy quantity series, but we cannot run 75 VAR. Indeed, even though we managed to match the series we still had some data missing in the series themselves.
-Thus, for each zone in our study (France, Germany, Spain and EU27) we flag sectors that have data problems for either the price or quantity series. A sector being flagged mainly comes from the fact that the latest data available is before 2023 (some stop in 2022 or 2020 and some even in 2015).
+Thus, for each zone in our study (France, Germany, Spain and EU27) we flag sectors that have data problems for either the price or quantity series. A sector being flagged mainly stems from the latest data available being earlier than 2023 (some stop in 2022 or 2020 and some even in 2015).
 Overall we run regressions on 52 (EU27) to 72 (France) sectors.
 \bigbreak
 The estimated reduced-form residuals $(\nu_{t}^{q},\nu_{t}^{p})$ (equivalent to $(\nu_{t}^{s},\nu_{t}^{d})$ in the previous section) are then used to label each sector in each month using the following rule :
@@ -44,7 +44,7 @@ We present results for year-over-year inflation, which is simply given by:
     \end{cases}
 \end{align*}
 
-\subsubsection{Robustness check}
+\subsubsection{Robustness check : alternative classifications}
 
 \quad Shapiro introduced several alternative classification methods which we replicated to assess whether the methodology was robust enough.
 In our version, as the lag order for each VAR is automatically selected (and if we believe the selected lag is correct) there should not be specification error.
@@ -72,3 +72,6 @@ The algorithm proposed by Sheremirov is as follows, for each sector $i$ and mont
     \end{align*}
     \item[3.] If neither condition is verified, month $t$ is classified as transitory demand (if $\ind_{i,dem}(t)=1$) or transitory supply.
 \end{itemize}
+\quad The Sheremirov methodology was implemented to assess to what extent classifications derived from Shapiro's methods would be consistent with alternative methods, especially one not based on a VAR.
+
+\clearpage

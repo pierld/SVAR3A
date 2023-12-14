@@ -4,6 +4,7 @@
 \contentsline {section}{\numberline {2}Estimation}{4}{section.4}%
 \contentsline {subsection}{\numberline {2.1}Classification from \textit {Shapiro (2022)}}{4}{subsection.5}%
 \contentsline {subsubsection}{\numberline {2.1.1}Baseline classification}{4}{subsubsection.6}%
-\contentsline {subsubsection}{\numberline {2.1.2}Robustness check}{6}{subsubsection.7}%
+\contentsline {subsubsection}{\numberline {2.1.2}Robustness check : alternative classifications}{6}{subsubsection.7}%
 \contentsline {subsection}{\numberline {2.2}Classification from \textit {Sheremirov (2022)}}{6}{subsection.8}%
-\contentsline {section}{\numberline {3}Results}{7}{section.9}%
+\contentsline {section}{\numberline {3}Results}{8}{section.9}%
+\contentsline {subsection}{\numberline {3.1}Results for France}{8}{subsection.10}%

@@ -1543,6 +1543,24 @@ INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/bbold/bbold10.tfm
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/bbold/bbold8.tfm
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/bbold/bbold12.tfm
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/bbold/bbold17.tfm
+INPUT ./core/3. Results.tex
+INPUT core/3. Results.tex
+INPUT ./core/3. Results.tex
+INPUT core/3. Results.tex
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/sourceserifpro/SourceSerifPro-Regular-lf-sc-t1.tfm
+INPUT ./img/dem_heat.png
+INPUT ./img/dem_heat.png
+INPUT img/dem_heat.png
+INPUT ./img/dem_heat.png
+INPUT ./img/dem_heat.png
+INPUT ./img/sup_heat.png
+INPUT ./img/sup_heat.png
+INPUT img/sup_heat.png
+INPUT ./img/sup_heat.png
+INPUT ./img/sup_heat.png
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/vf/adobe/sourceserifpro/SourceSerifPro-Regular-lf-sc-t1.vf
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/sourceserifpro/SourceSerifPro-Regular-lf-sc-t1--base.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/enc/dvips/sourceserifpro/a_lseshj.enc
 INPUT main.aux
 INPUT ./main.out
 INPUT ./main.out
