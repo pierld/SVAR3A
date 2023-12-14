@@ -1,0 +1,74 @@
+% ============================================
+% ============================================
+\subsection{Classification from \textit{Shapiro (2022)}}
+\subsubsection{Baseline classification}
+
+\quad With our price-quantity pairs matched for 75 sectors, we run the following monthly VAR for each of the sectors denoted by index ($i$) :
+\begin{align*}
+    \begin{bmatrix} \Delta q_{i,t} \\ \Delta p_{i,t} \end{bmatrix} = \mathlarger{\mathlarger{\sum}}_{j=1}^{p}A_{j}.\begin{bmatrix} \Delta q_{i,t-j} \\ \Delta p_{i,t-j} \end{bmatrix} + \begin{bmatrix} \nu_{i,t}^{q} \\ \nu_{i,t}^{p} \end{bmatrix}\;
+\end{align*}
+
+Where $\Delta q_{i,t}$ and $\Delta p_{i,t}$ are the demeaned first-difference of the log-transformed quantity and price indices ($x_{i,t} = \textrm{log}(X_{i,t})$).
+This assumes $\Delta q_{i,t}$ and $\Delta p_{i,t}$ are second-order stationary, which seems to be the case. 
+\bigbreak
+In our implementation of the methodology, we let the order $p$ of the VAR be automatically selected via minimisation of a statistical criterion (AIC or BIC) for each sector instead of imposing $p=12$ as done by Shapiro.
+Even though he explains the classification seems to be robust to the lag order selection we would rather let it be sector-specific than adding another constraint on the methodology.
+\bigbreak
+Note that we said 75 sectors had matched proxy quantity series, but we cannot run 75 VAR. Indeed, even though we managed to match the series we still had some data missing in the series themselves.
+Thus, for each zone in our study (France, Germany, Spain and EU27) we flag sectors that have data problems for either the price or quantity series. A sector being flagged mainly comes from the fact that the latest data available is before 2023 (some stop in 2022 or 2020 and some even in 2015).
+Overall we run regressions on 52 (EU27) to 72 (France) sectors.
+\bigbreak
+The estimated reduced-form residuals $(\nu_{t}^{q},\nu_{t}^{p})$ (equivalent to $(\nu_{t}^{s},\nu_{t}^{d})$ in the previous section) are then used to label each sector in each month using the following rule :
+\begin{align*}
+    \ind_{i,sup(+)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}>0,\nu_{i,t}^{p}<0 \\ 0 \quad \textrm{otherwise} \end{cases} \\
+    \ind_{i,sup(-)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}<0,\nu_{i,t}^{p}>0 \\ 0 \quad \textrm{otherwise} \end{cases} \\
+    \ind_{i,dem(+)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}>0,\nu_{i,t}^{p}>0 \\ 0 \quad \textrm{otherwise} \end{cases} \\
+    \ind_{i,dem(-)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}<0,\nu_{i,t}^{p}<0 \\ 0 \quad \textrm{otherwise} \end{cases} \\
+    \Rightarrow \ind_{i,sup}(t) &= \ind_{i,sup(+)}(t) + \ind_{i,sup(-)}(t) \\
+    \Rightarrow \ind_{i,dem}(t) &= \ind_{i,dem(+)}(t) + \ind_{i,dem(-)}(t) \\
+\end{align*}
+
+It follows that each month, overall month-over-month inflation $\pi_{t,t-1}$ can be devided into supply and demand driven components. 
+As the overall CPI is a weighted average of its sectorial inflation $\pi_{i,t,t-1}$ we denote $\omega_{i,y}$ the weight of sector $(i)$ at year $y$ in the CPI.
+In the following equation $y_t$ means the year of month $t$.
+\begin{align*}
+    \pi_{t,t-1} &= \mathlarger{\mathlarger{\sum}}_{i} \ind_{i,sup}(t) \omega_{i,y_t} \pi_{i,t,t-1} + \mathlarger{\mathlarger{\sum}}_{i} \ind_{i,dem}(t) \omega_{i,y_t} \pi_{i,t,t-1} \\
+    \pi_{t,t-1} &= \pi_{t,t-1}^{sup} + \pi_{t,t-1}^{dem}
+\end{align*}
+
+We present results for year-over-year inflation, which is simply given by:
+\begin{align*}
+    \begin{cases}
+        \pi_{t,t-12}^{sup} &= \mathlarger{\mathlarger{\sum}}_{k=0}^{11} \pi_{t-k,t-k-1}^{sup} \\
+        \pi_{t,t-12}^{dem} &= \mathlarger{\mathlarger{\sum}}_{k=0}^{11} \pi_{t-k,t-k-1}^{dem}
+    \end{cases}
+\end{align*}
+
+\subsubsection{Robustness check}
+
+\quad Shapiro introduced several alternative classification methods which we replicated to assess whether the methodology was robust enough.
+In our version, as the lag order for each VAR is automatically selected (and if we believe the selected lag is correct) there should not be specification error.
+\bigbreak
+We implement the the two alternative methods that are the smoothed-errors classification (to offset possible measurement errors) and the parametric approach. 
+In the latter, each month a sector is no longer deterministically classified as experiencing a supply or a demand shock but there rather is a probability $p_t^K$ that it is experiencing a shock of type $K \in$\{supply,demand\}.
+
+
+% ============================================
+% ============================================
+\subsection{Classification from \textit{Sheremirov (2022)}}
+
+The algorithm proposed by Sheremirov is as follows, for each sector $i$ and month $t$ :
+\begin{itemize}
+    \item[1.] Compute year-over-year inflation and (real) consumption/demand growth : $\pi_{i,t},c_{i,t}$
+    \item[2.] Classify the sector $i$ as experiencing a demand shock at month $t$ if both inflation and consumption growth are over their 2001-2019 respective average $\tilde{\pi_i},\tilde{c_i}$ : 
+    \begin{align*}
+        \ind_{i,dem}(t) &= \begin{cases} 1 \quad \textrm{if} \; (\pi_{i,t}-\tilde{\pi_i}).(c_{i,t}-\tilde{c_i})>0 \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+        \ind_{i,sup}(t) &= 1 - \ind_{i,dem}(t)
+    \end{align*}
+    \item[3.] Classify the shock at month $t$ as:
+    \begin{align*}
+        \textrm{Persistent demand} \; \ind_{i,dem}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \mathlarger{\mathlarger{\sum}}_{k=0}^{11} \ind_{i,dem}(t-k) \geq 11 \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+        \textrm{Persistent demand} \; \ind_{i,sup}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \mathlarger{\mathlarger{\sum}}_{k=0}^{11} \ind_{i,sup}(t-k) \geq 11 \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+    \end{align*}
+    \item[3.] If neither condition is verified, month $t$ is classified as transitory demand (if $\ind_{i,dem}(t)=1$) or transitory supply.
+\end{itemize}

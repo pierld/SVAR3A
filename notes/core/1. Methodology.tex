@@ -1,0 +1,133 @@
+% ============================================
+% ============================================
+\subsection{Basis of \textit{Shapiro (2022)}}
+
+The methodology proposed by Adam Hale Shapiro in his 2022 paper "Decomposing Supply and Demand Driven Inflation" takes its foundations in the work of Jump and Kohler (2022).
+The core assumption of the framework is that for each sector/section $(i)$ of the inflation decomposition, an upward sloping in price supply curve and a downward demand curve can be assumed.
+
+\begin{center}
+    \begin{tikzpicture}
+    \begin{axis}[
+    xmin = 0, xmax = 10,
+    ymin = 0, ymax = 10,
+    axis lines* = left,
+    xtick = \empty, ytick = \empty,
+    clip = false,
+    legend pos=outer north east
+    ]
+    %Labels
+    \node [right] at (current axis.right of origin) {$P_{i}$};
+    \node [above] at (current axis.above origin) {$Q_{i}$};
+    % Lines
+    \addplot[domain = 0:8, restrict y to domain = 0:10, samples = 400, color = red]{x+1};
+    \addlegendentry{Supply}
+    \addplot[domain = 0:8, restrict y to domain = 0:10, samples = 400, color = teal]{-0.7*x+7};
+    \addlegendentry{Demand}
+    \end{axis}
+    \end{tikzpicture}
+\end{center}
+
+\noindent In theory, assuming $\sigma_{i}>0$ and $\delta_{i}>0$, we have:
+\begin{align*}
+    \textrm{Supply :} & \quad Q_{i} = \sigma_{i}.P_{i} + \alpha_{i}\\
+    \textrm{Demand :} & \quad P_{i} = -\delta_{i}.Q_{i} + \beta_{i}
+\end{align*}
+
+\noindent Shocks are then defined as vertical movements of the curves :
+\begin{align*}
+    \textrm{Supply shock : } \varepsilon_{t}^{s} &= \Delta \alpha_{i} \; = (Q_{i,t} - \sigma_{i}P_{i,t}) - (Q_{i,t-1} - \sigma_{i}P_{i,t-1})\\
+    \rightarrow \varepsilon_{t}^{s} &= \Delta Q_{i,t} - \sigma_{i}\Delta P_{i,t}\\
+    \textrm{Demand shock : } \varepsilon_{t}^{d} &= \Delta \beta_{i} \; = (P_{i,t} + \delta_{i}Q_{i,t}) - (P_{i,t-1} + \delta_{i}Q_{i,t-1})\\
+    \rightarrow \varepsilon_{t}^{d} &= \Delta P_{i,t} + \delta_{i}\Delta Q_{i,t}
+\end{align*}
+
+\noindent We can easily show that the two previous equations lead to :
+\begin{align*}
+    \begin{cases}
+        \Delta Q_{i,t} &= \frac{1}{1+\delta_{i}}(\varepsilon_{t}^{s} + \sigma_{i}.\varepsilon_{t}^{d}) \\
+        \Delta P_{i,t} &= \frac{1}{\sigma_{i}(1+\delta_{i})}(\sigma_{i}.\varepsilon_{t}^{d} - \delta_{i}.\varepsilon_{t}^{s})
+    \end{cases}
+\end{align*}
+
+\noindent As we assume $\sigma_{i}>0$ and $\delta_{i}>0$, we can derive expected comovements between the two variables following supply and demand shocks.
+\begin{align*}
+    \begin{cases}
+        \textrm{Supply shock } \; \Delta^{+}\varepsilon^{s} &: \; \Delta^{+}Q \quad \textrm{\&} \quad \Delta^{-}P > \textrm{Negative comovements (S)}\\
+        \textrm{Demand shock } \; \Delta^{+}\varepsilon^{d} &: \; \Delta^{+}Q \quad \textrm{\&} \quad \Delta^{+}P > \textrm{Positive comovements (D)}
+    \end{cases}
+\end{align*}
+
+
+\noindent Consider the following structural VAR of (arbitrary) order $p$ (dropping $i$ indices). Let $z_{t} = \begin{bmatrix} \Delta Q_{t} \\ \Delta P_{t} \end{bmatrix}$ and the structural shocks $\varepsilon_{t} = \begin{bmatrix} \varepsilon_{t}^{s} \\ \varepsilon_{t}^{d} \end{bmatrix}$:
+\vspace*{.5cm}
+\[
+    A.\begin{bmatrix} \Delta Q_{t} \\ \Delta P_{t} \end{bmatrix} \;
+    = \mu + \sum_{i=1}^{p}A_{i}.z_{t-i} + \begin{bmatrix} \varepsilon_{t}^{s} \\ \varepsilon_{t}^{d} \end{bmatrix}\;
+\]
+
+\vspace*{.4cm}
+\noindent With $\nu_{t}$ the residuals of the estimated reduced-form VAR($p$) we should have $\nu_{t} = A^{-1}.\varepsilon_{t}$\\
+Let $A$ satisfy $
+    A \equiv\begin{pmatrix} 1 & - \alpha \\ \beta & 1 \end{pmatrix}
+    $ 
+with $\alpha, \beta > 0$, it follows that
+$
+A^{-1} = \frac{1}{1+\alpha \beta}\begin{pmatrix} 1 & \alpha \\ -\beta & 1 \end{pmatrix}
+$\\
+Omitting the $t$ indices we have : 
+\begin{align*}
+    \begin{bmatrix} \nu^{s} \\ \nu^{d} \end{bmatrix} &= A^{-1}.\begin{bmatrix} \varepsilon^{s} \\ \varepsilon^{d} \end{bmatrix} \\
+    \begin{bmatrix} \nu^{s} \\ \nu^{d} \end{bmatrix} &= \frac{1}{1+\alpha \beta}\begin{pmatrix} 1 & \alpha \\ -\beta & 1 \end{pmatrix} \begin{bmatrix} \varepsilon^{s} \\ \varepsilon^{d} \end{bmatrix}
+\end{align*}
+As $\frac{1}{1+\alpha \beta} > 0$, we finally have:
+
+\begin{align*}
+    \begin{cases}
+        \nu^{s} &\propto \varepsilon^{s} + \alpha.\varepsilon^{d} \\
+        \nu^{d} &\propto -\beta.\varepsilon^{s} + \varepsilon^{d}
+    \end{cases}
+\end{align*}
+
+\noindent Which leads to:
+\begin{align*}
+    \begin{cases}
+        \varepsilon^{s}>0 \;,\; \varepsilon^{d}>0 & \Rightarrow \nu^{s}>0 \\
+        \varepsilon^{s}<0 \;,\; \varepsilon^{d}<0 & \Rightarrow \nu^{s}<0 \\
+        \varepsilon^{s}<0 \;,\; \varepsilon^{d}>0 & \Rightarrow \nu^{d}>0 \\
+        \varepsilon^{s}>0 \;,\; \varepsilon^{d}<0 & \Rightarrow \nu^{d}<0 \\
+    \end{cases}  
+\end{align*}
+
+\noindent Looking at the signs of $\nu^{s}$ and $\nu^{d}$ we can then back-track and derive the signs of $\varepsilon^{s}$ and $\varepsilon^{d}$. 
+For example when $\nu^{s}>0$ and $\nu^{d}<0$ we have $\varepsilon^{s}>0$. We derive:
+
+\begin{align*}
+    \begin{cases}
+        \nu^{s}>0,\; \nu^{d}<0 \Rightarrow \varepsilon^{s}>0 & \textrm{+ Supply shock} \quad (1)\\
+        \nu^{s}<0,\; \nu^{d}>0 \Rightarrow \varepsilon^{s}<0 & \textrm{- Suppply shock} \quad (2) \\
+        \nu^{s}>0,\; \nu^{d}>0 \Rightarrow \varepsilon^{d}>0 & \textrm{+ Demand shock}  \quad (3) \\
+        \nu^{s}<0,\; \nu^{d}<0 \Rightarrow \varepsilon^{d}<0 & \textrm{- Demand shock}  \quad (4) \\
+    \end{cases}  
+\end{align*}
+
+\noindent Thus, from (1) and (2) we see that reduced-form errors of opposite sign (negative comovements of $P$ and $Q$) are associated with demand shocks, which is consistent with theory (S).
+Similarly, from (3) and (4) reduced-form errors of the same sign (positive comovements of $P$ and $Q$) are associated with demand shocks, again consistent with theory (D).
+
+\noindent Assuming that $A$ in the structrual VAR is of the form $\begin{pmatrix} 1 & - \alpha \\ \beta & 1 \end{pmatrix}$ with $\alpha,\beta>0$, or more generally $A =\begin{pmatrix} a_{11}\red{>0} & a_{12}\red{<0} \\ a_{21}\red{>0} & a_{22}\red{>0} \end{pmatrix}$, thus \textbf{ensures} that expected structural shocks' effects on the covariates derived from theory are consistent in the model. 
+We can then infer aforementioned effects from the reduced-form residuals that are in practice derived from the estimation of a VAR($p$) model.
+
+% ============================================
+% ============================================
+\subsection{Data for European countries}
+
+\quad In the original paper from Shapiro the data used are price, quantity and expenditures from the personal consumption expenditure (PCE) data with fourth level of disaggregation of the Bureau of Economic Analysis (BEA).
+However it is more complicated when considering European countries. 
+Indeed, similar quantity series are not readily available for each of the 4-digit COICOP classification component of the HICP. 
+\bigbreak
+To tackle this issue, we follow the indication provided by Eduardo Goncalves and Gerrit Koester in the ECB Economic Bulletin 7 of 2022.
+We consider the turnover series from the short-term statistics data of the ECB as proxy for demand, and once deflated as proxy for the quantity series.
+The main issue that remains is that the classification of sectors in the HICP (COICOP) is different from the classification of sectors used in the short-term statistics data (NACE Rev.2).
+We then try to match as best as possible each COICOP sector to a NACE Rev.2 counterpart. 
+Out of the 94 4-digit COICOP sectors, we managed to create 75 pairs. 
+On average that is around 80\% of the overall HICP that has been matched.
+In what follows we refer for each sector the 'quantity index' as the real matched turnover series (CPI deflated).
