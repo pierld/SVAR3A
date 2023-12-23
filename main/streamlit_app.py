@@ -153,13 +153,7 @@ if country!=None:
         st.markdown('### Robust Sheremirov classification')
         sherem_r = plot_stack(df=cpi.sheremirov,method="sheremirov",robust="complex",unclassified=unclass,year=year)
         st.plotly_chart(sherem_r,use_container_width=True)
-        
-    
 
-
-
-
-#st.line_chart(seattle_weather, x = 'date', y = plot_data, height = plot_height)
 
 
 
