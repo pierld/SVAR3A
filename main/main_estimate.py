@@ -12,7 +12,6 @@ from typing import Union
 from statistics import NormalDist
 from tqdm import tqdm
 
-
 #%%
 # === Data (index = HICP & Qt without log transf.) ===
 df_w = pd.read_excel("data/data_flat.xlsx",sheet_name="weights")
@@ -37,7 +36,6 @@ def log_transform(cell_value):
 # ===============================================================
 # ===============================================================
 # ===============================================================
-
 #%%
 #! ////////////////////////////////////////////////////
 class CPIframe:
@@ -77,9 +75,9 @@ class CPIframe:
             pandas.DataFrame: Dataframe of Quantity or Price series data with dates as rows.
         """
         if transform==True:
-            temp = df.applymap(log_transform)
+            temp = df.map(log_transform)
         elif variation==True:
-            temp = df.applymap(log_transform)
+            temp = df.map(log_transform)
         else:
             temp = df.copy()
         x = temp[temp['Location']==self.country]
@@ -144,11 +142,19 @@ class CPIframe:
         x = pd.DataFrame()
         for col in self.price_index.columns:
             temp = self.price_index[[col]]
-            temp = temp.drop(['HICP'],axis=0).dropna()
-            temp.index = pd.to_datetime(temp.index)
-            temp = 100*temp.pct_change().dropna() #monthly rate in %
-            temp = temp.reindex(self.dates)
-            x[col] = temp
+            if len(temp.drop(['HICP'],axis=0).dropna())==0:
+                temp = temp.drop(['HICP'],axis=0)
+                temp.index = pd.to_datetime(temp.index)
+                x[col] = temp
+            else:
+                temp = temp.drop(['HICP'],axis=0).dropna()
+                temp.index = pd.to_datetime(temp.index)
+                try:
+                    temp = 100*temp.pct_change().dropna() #monthly rate in %
+                    temp = temp.reindex(self.dates)
+                    x[col] = temp
+                except:
+                    print(col)
         return x
     
     def sector_inf(self,col_num,drop=True):
@@ -521,7 +527,7 @@ class CPIlabel:
                     return("sup_shapiro_"+col.split("_")[1])
                 
         c = []
-        L = len(self.meta.price.columns)
+        L_col = len(self.meta.price.columns)
         duo = ['Sector','Component']
         if self.order=="auto":
             temp_shapiro_aic = {}
@@ -535,8 +541,9 @@ class CPIlabel:
                 temp_shapiro_r = {}
         temp_sheremirov = {}
 
-        with tqdm(total=L, ascii=True) as pbar:
-            for col in range(0,L):
+        #*-----ESTIMATION
+        with tqdm(total=L_col, ascii=True) as pbar:
+            for col in range(0,L_col):
                 if self.meta.flag[col]==1:
                     # Sector was flagged as missing some data
                     pass
@@ -563,15 +570,16 @@ class CPIlabel:
                 pbar.update(1)
                 
         #?-----SHAPIRO(2022)
-        if self.order=="auto":
-            self.shapiro_aic_sec = pd.concat([x.transpose().stack() for x in temp_shapiro_aic.values()], keys=c, names=['Sector']).unstack().transpose()
-            self.shapiro_bic_sec = pd.concat([x.transpose().stack() for x in temp_shapiro_bic.values()], keys=c, names=['Sector']).unstack().transpose()
+        if self.order=="auto":              
+            self.shapiro_aic_sec = pd.concat([x.transpose().stack() for x in temp_shapiro_aic.values()], keys=c, names=['Sector']).unstack()
+            self.shapiro_aic_sec = self.shapiro_aic_sec.reindex(sorted(self.shapiro_aic_sec.columns),axis=1).transpose()
+            self.shapiro_bic_sec = pd.concat([x.transpose().stack() for x in temp_shapiro_bic.values()], keys=c, names=['Sector']).unstack()
+            self.shapiro_bic_sec = self.shapiro_bic_sec.reindex(sorted(self.shapiro_bic_sec.columns),axis=1).transpose()
             self.shapiro_aic_sec.columns.names = duo
             self.shapiro_bic_sec.columns.names = duo
             sample_aic = retrieve_dates(self.shapiro_aic_sec)
             sample_bic = retrieve_dates(self.shapiro_bic_sec)
             cols_shapiro = list(self.shapiro_aic_sec[0].columns)
-            L = int(len(cols_shapiro)/2)
             
             #*--(1)
             for col in cols_shapiro:
@@ -580,16 +588,14 @@ class CPIlabel:
             if self.annual:
                 self.shapiro_aic = self.shapiro_aic.rolling(12).sum().dropna()
                 self.shapiro_bic = self.shapiro_bic.rolling(12).sum().dropna()
-                self.shapiro_aic["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_aic.index[0]:self.shapiro_aic.index[-1]][self.meta.country] - self.shapiro_aic[self.shapiro_aic.columns[0]] - self.shapiro_aic[self.shapiro_aic.columns[L]] 
-                self.shapiro_bic["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_bic.index[0]:self.shapiro_bic.index[-1]][self.meta.country] - self.shapiro_bic[self.shapiro_bic.columns[0]] - self.shapiro_bic[self.shapiro_bic.columns[L]] 
-                self.shapiro_aic["total"] = self.shapiro_aic["unclassified"] + self.shapiro_aic["dem"] + self.shapiro_aic["sup"]
-                self.shapiro_bic["total"] = self.shapiro_bic["unclassified"] + self.shapiro_bic["dem"] + self.shapiro_bic["sup"]
+                self.shapiro_aic["total"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_aic.index]
+                self.shapiro_bic["total"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_bic.index]
             else:
-                self.shapiro_aic["unclassified"] = self.meta.overall.loc[self.shapiro_aic.index[0]:self.shapiro_aic.index[-1]][self.meta.country] - self.shapiro_aic[self.shapiro_aic.columns[0]] - self.shapiro_aic[self.shapiro_aic.columns[L]] 
-                self.shapiro_bic["unclassified"] = self.meta.overall.loc[self.shapiro_bic.index[0]:self.shapiro_bic.index[-1]][self.meta.country] - self.shapiro_bic[self.shapiro_bic.columns[0]] - self.shapiro_bic[self.shapiro_bic.columns[L]] 
-                self.shapiro_aic["total"] = self.shapiro_aic["unclassified"] + self.shapiro_aic["dem"] + self.shapiro_aic["sup"]
-                self.shapiro_bic["total"] = self.shapiro_bic["unclassified"] + self.shapiro_bic["dem"] + self.shapiro_bic["sup"]
-                
+                self.shapiro_aic["total"] = self.meta.overall.loc[self.shapiro_aic.index]
+                self.shapiro_bic["total"] = self.meta.overall.loc[self.shapiro_bic.index]
+            self.shapiro_aic["unclassified"] = self.shapiro_aic["total"] - self.shapiro_aic["dem"] - self.shapiro_aic["sup"]
+            self.shapiro_bic["unclassified"] = self.shapiro_bic["total"] - self.shapiro_bic["dem"] - self.shapiro_bic["sup"]
+
             corr_aic = self.shapiro_aic[['dem','sup']].copy().rename(columns={"dem":"dem_shapiro_aic","sup":"sup_shapiro_aic"})
             corr_bic = self.shapiro_bic[['dem','sup']].copy().rename(columns={"dem":"dem_shapiro_bic","sup":"sup_shapiro_bic"})
             self.demand_corr_v = pd.concat([corr_aic[[col for col in corr_aic.columns if "dem" in col]],corr_bic[[col for col in corr_bic.columns if "dem" in col]]],axis=1,join='inner')
@@ -597,33 +603,31 @@ class CPIlabel:
             
             #*--(2)
             if self.shap_robust:
-                self.shapiro_aic_sec_r = pd.concat([x.transpose().stack() for x in temp_shapiro_aic_r.values()], keys=c, names=['Sector']).unstack().transpose()
-                self.shapiro_bic_sec_r = pd.concat([x.transpose().stack() for x in temp_shapiro_bic_r.values()], keys=c, names=['Sector']).unstack().transpose()
+                self.shapiro_aic_sec_r = pd.concat([x.transpose().stack() for x in temp_shapiro_aic_r.values()], keys=c, names=['Sector']).unstack()
+                self.shapiro_aic_sec_r = self.shapiro_aic_sec_r.reindex(sorted(self.shapiro_aic_sec_r.columns),axis=1).transpose()
+                self.shapiro_bic_sec_r = pd.concat([x.transpose().stack() for x in temp_shapiro_bic_r.values()], keys=c, names=['Sector']).unstack()
+                self.shapiro_bic_sec_r = self.shapiro_bic_sec_r.reindex(sorted(self.shapiro_bic_sec_r.columns),axis=1).transpose()
                 self.shapiro_aic_sec_r.columns.names = duo
                 self.shapiro_bic_sec_r.columns.names = duo
                 sample_aic_r = retrieve_dates(self.shapiro_aic_sec_r)
                 sample_bic_r = retrieve_dates(self.shapiro_bic_sec_r)
                 cols_shapiro_r = list(self.shapiro_aic_sec_r[0].columns)
-                L_r = int(len(cols_shapiro_r)/2)
-                
-                #*--(2.1)
+
                 for col in cols_shapiro_r:
                     self.shapiro_aic_r[col] = self.shapiro_aic_sec_r.loc[:, self.shapiro_aic_sec_r.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_aic_r[0]:sample_aic_r[1]]
                     self.shapiro_bic_r[col] = self.shapiro_bic_sec_r.loc[:, self.shapiro_bic_sec_r.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_bic_r[0]:sample_bic_r[1]]
                 
-                #*--(2.2)
                 if self.annual:
                     self.shapiro_aic_r = self.shapiro_aic_r.rolling(12).sum().dropna()
                     self.shapiro_bic_r = self.shapiro_bic_r.rolling(12).sum().dropna()
-                    self.shapiro_aic_r["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_aic_r.index[0]:self.shapiro_aic_r.index[-1]][self.meta.country] - self.shapiro_aic_r[self.shapiro_aic_r.columns[0]] - self.shapiro_aic_r[self.shapiro_aic_r.columns[L_r]]
-                    self.shapiro_bic_r["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_bic_r.index[0]:self.shapiro_bic_r.index[-1]][self.meta.country] - self.shapiro_bic_r[self.shapiro_bic_r.columns[0]] - self.shapiro_bic_r[self.shapiro_bic_r.columns[L_r]]
-                    self.shapiro_aic_r["total"] = self.shapiro_aic_r["unclassified"] + self.shapiro_aic_r["dem"] + self.shapiro_aic_r["sup"]
-                    self.shapiro_bic_r["total"] = self.shapiro_bic_r["unclassified"] + self.shapiro_bic_r["dem"] + self.shapiro_bic_r["sup"]
+                    self.shapiro_aic_r["total"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_aic_r.index]
+                    self.shapiro_bic_r["total"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_bic_r.index]
                 else:
-                    self.shapiro_aic_r["unclassified"] = self.meta.overall.loc[self.shapiro_aic_r.index[0]:self.shapiro_aic_r.index[-1]][self.meta.country] - self.shapiro_aic_r[self.shapiro_aic_r.columns[0]] - self.shapiro_aic_r[self.shapiro_aic_r.columns[L_r]]
-                    self.shapiro_bic_r["unclassified"] = self.meta.overall.loc[self.shapiro_bic_r.index[0]:self.shapiro_bic_r.index[-1]][self.meta.country] - self.shapiro_bic_r[self.shapiro_bic_r.columns[0]] - self.shapiro_bic_r[self.shapiro_bic_r.columns[L_r]]
-                    self.shapiro_aic_r["total"] = self.shapiro_aic_r["unclassified"] + self.shapiro_aic_r["dem"] + self.shapiro_aic_r["sup"]
-                    self.shapiro_bic_r["total"] = self.shapiro_bic_r["unclassified"] + self.shapiro_bic_r["dem"] + self.shapiro_bic_r["sup"]
+                    self.shapiro_aic_r["total"] = self.meta.overall.loc[self.shapiro_aic_r.index]
+                    self.shapiro_bic_r["total"] = self.meta.overall.loc[self.shapiro_bic_r.index]
+                self.shapiro_aic_r["unclassified"] = self.shapiro_aic_r["total"] - self.shapiro_aic_r["dem"] - self.shapiro_aic_r["sup"]
+                self.shapiro_bic_r["unclassified"] = self.shapiro_bic_r["total"] - self.shapiro_bic_r["dem"] - self.shapiro_bic_r["sup"]
+                    
                 corr_aic_r = self.shapiro_aic_r[[col for col in self.shapiro_aic_r.columns if "_" in col]].copy()
                 corr_aic_r.rename(columns={col:rename_col_corr(col,mode="aic") for col in corr_aic_r.columns},inplace=True)
                 corr_bic_r = self.shapiro_bic_r[[col for col in self.shapiro_bic_r.columns if "_" in col]].copy()
@@ -633,33 +637,34 @@ class CPIlabel:
                 
                 
         else:
-            self.shapiro_sec = pd.concat([x.transpose().stack() for x in temp_shapiro.values()], keys=c, names=['Sector']).unstack().transpose()
+            self.shapiro_sec = pd.concat([x.transpose().stack() for x in temp_shapiro.values()], keys=c, names=['Sector']).unstack()
+            self.shapiro_sec = self.shapiro_sec.reindex(sorted(self.shapiro_sec.columns),axis=1).transpose()
             self.shapiro_sec.columns.names = duo
             sample_estimate = retrieve_dates(self.shapiro_sec)
             cols_shapiro = list(self.shapiro_sec[0].columns)
-            L = int(len(cols_shapiro)/2)
             
             #*--(1)
             for col in cols_shapiro:
                 self.shapiro[col] = self.shapiro_sec.loc[:, self.shapiro_sec.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_estimate[0]:sample_estimate[1]]
             if self.annual:
                 self.shapiro = self.shapiro.rolling(12).sum().dropna()
-                self.shapiro["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro.index[0]:self.shapiro.index[-1]][self.meta.country] - self.shapiro[self.shapiro.columns[0]] - self.shapiro[self.shapiro.columns[L]] 
-                self.shapiro["total"] = self.shapiro["unclassified"] + self.shapiro["dem"] + self.shapiro["sup"]
+                self.shapiro["total"] = self.meta.overall.rolling(12).sum().loc[self.shapiro.index]
             else:
-                self.shapiro["unclassified"] = self.meta.overall.loc[self.shapiro.index[0]:self.shapiro.index[-1]][self.meta.country] - self.shapiro[self.shapiro.columns[0]] - self.shapiro[self.shapiro.columns[L]] 
-                self.shapiro["total"] = self.shapiro["unclassified"] + self.shapiro["dem"] + self.shapiro["sup"]
+                self.shapiro["total"] = self.meta.overall.loc[self.shapiro.index]
+            self.shapiro["unclassified"] = self.shapiro["total"] - self.shapiro["dem"] - self.shapiro["sup"]
+            
             corr_estime = self.shapiro[['dem','sup']].copy().rename(columns={"dem":"dem_shapiro","sup":"sup_shapiro"})
             self.demand_corr_v = corr_estime[[col for col in corr_estime.columns if "dem" in col]].copy()
             self.supply_corr_v = corr_estime[[col for col in corr_estime.columns if "sup" in col]].copy()
             
             #*--(2)
             if self.shap_robust:
-                self.shapiro_sec_r = pd.concat([x.transpose().stack() for x in temp_shapiro_r.values()], keys=c, names=['Sector']).unstack().transpose()
+                self.shapiro_sec_r = pd.concat([x.transpose().stack() for x in temp_shapiro_r.values()], keys=c, names=['Sector']).unstack()
+                self.shapiro_sec_r = self.shapiro_sec_r.reindex(sorted(self.shapiro_sec_r.columns),axis=1).transpose()
                 self.shapiro_sec_r.columns.names = duo
                 sample_estimate_r = retrieve_dates(self.shapiro_sec_r)
                 cols_shapiro_r = list(self.shapiro_sec_r[0].columns)
-                L_r = int(len(cols_shapiro_r)/2)
+                
                 #*--(2.1)
                 for col in cols_shapiro_r:
                     self.shapiro_r[col] = self.shapiro_sec_r.loc[:, self.shapiro_sec_r.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_estimate_r[0]:sample_estimate_r[1]]
@@ -667,31 +672,32 @@ class CPIlabel:
                 #*--(2.2)
                 if self.annual:
                     self.shapiro_r = self.shapiro_r.rolling(12).sum().dropna()
-                    self.shapiro_r["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_r.index[0]:self.shapiro_r.index[-1]][self.meta.country] - self.shapiro_r[self.shapiro_r.columns[0]] - self.shapiro_r[self.shapiro_r.columns[L_r]]
-                    self.shapiro_r["total"] = self.shapiro_r["unclassified"] + self.shapiro_r["dem"] + self.shapiro_r["sup"]
+                    self.shapiro_r["total"] = self.meta.overall.rolling(12).sum().loc[self.shapiro_r.index]
                 else:
-                    self.shapiro_r["unclassified"] = self.meta.overall.loc[self.shapiro_r.index[0]:self.shapiro_r.index[-1]][self.meta.country] - self.shapiro_r[self.shapiro_r.columns[0]] - self.shapiro_r[self.shapiro_r.columns[L_r]]
-                    self.shapiro_r["total"] = self.shapiro_r["unclassified"] + self.shapiro_r["dem"] + self.shapiro_r["sup"]
+                    self.shapiro_r["total"] = self.meta.overall.loc[self.shapiro_r.index]
+                self.shapiro_r["unclassified"] = self.shapiro_r["total"] - self.shapiro_r["dem"] - self.shapiro_r["sup"]
+                
                 corr_estime_r = self.shapiro_r[[col for col in self.shapiro_r.columns if "_" in col]].copy()
                 corr_estime_r.rename(columns={col:rename_col_corr(col,mode=None) for col in corr_estime_r.columns},inplace=True)
                 self.demand_corr_v = pd.concat([self.demand_corr_v,corr_estime_r[[col for col in corr_estime_r.columns if "dem" in col]]],axis=1,join='inner')
                 self.supply_corr_v = pd.concat([self.supply_corr_v,corr_estime_r[[col for col in corr_estime_r.columns if "sup" in col]]],axis=1,join='inner')
 
         #?-----SHEREMIROV(2022)
-        self.sheremirov_sec = pd.concat([x.transpose().stack() for x in temp_sheremirov.values()], keys=c, names=['Sector']).unstack().transpose()
+        self.sheremirov_sec = pd.concat([x.transpose().stack() for x in temp_sheremirov.values()], keys=c, names=['Sector']).unstack()
+        self.sheremirov_sec = self.sheremirov_sec.reindex(sorted(self.sheremirov_sec.columns),axis=1).transpose()
         self.sheremirov_sec.columns.names = duo
         sample_shemirov = retrieve_dates(self.sheremirov_sec)
         cols_sheremirov = list(self.sheremirov_sec[0].columns)
-        L = int(len(cols_sheremirov)/2)
+        
         for col in cols_sheremirov:
             self.sheremirov[col] = self.sheremirov_sec.loc[:, self.sheremirov_sec.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_shemirov[0]:sample_shemirov[1]]
         if self.annual:
             self.sheremirov = self.sheremirov.rolling(12).sum().dropna()
-            self.sheremirov["unclassified"] = self.meta.overall.rolling(12).sum().loc[self.sheremirov.index[0]:self.sheremirov.index[-1]][self.meta.country] - self.sheremirov[self.sheremirov.columns[0]] - self.sheremirov[self.sheremirov.columns[L]] 
-            self.sheremirov["total"] = self.sheremirov["unclassified"] + self.sheremirov["dem"] + self.sheremirov["sup"]
+            self.sheremirov["total"] = self.meta.overall.rolling(12).sum().loc[self.sheremirov.index]
         else:
-            self.sheremirov["unclassified"] = self.meta.overall.loc[self.sheremirov.index[0]:self.sheremirov.index[-1]][self.meta.country] - self.sheremirov[self.sheremirov.columns[0]] - self.sheremirov[self.sheremirov.columns[L]] 
-            self.sheremirov["total"] = self.sheremirov["unclassified"] + self.sheremirov["dem"] + self.sheremirov["sup"]
+            self.sheremirov["total"] = self.meta.overall.loc[self.sheremirov.index]
+        self.sheremirov["unclassified"] = self.sheremirov["total"] - self.sheremirov["dem"] - self.sheremirov["sup"]
+        
         corr_sd_sher = self.sheremirov[["dem","sup"]].copy().rename(columns={"dem":"dem_sheremirov","sup":"sup_sheremirov"})
         self.demand_corr_v = pd.concat([self.demand_corr_v,corr_sd_sher[[col for col in corr_sd_sher.columns if "dem" in col]]],axis=1,join='inner')
         self.supply_corr_v = pd.concat([self.supply_corr_v,corr_sd_sher[[col for col in corr_sd_sher.columns if "sup" in col]]],axis=1,join='inner')
@@ -772,10 +778,12 @@ class CPIlabel:
 #? =====================================================================
 #meta = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="France")
 #cpi = CPIlabel(meta=meta)
-#cpi_eu = CPIlabel(meta=eu,order=12)
-#t1 = sector_estimation(meta=eu,col=64,shapiro_robust=True)
+
+#%%
+#t1 = sector_estimation(meta=meta,col=64,shapiro_robust=True)
 #t2 = sector_estimation(meta=eu,col=11,shapiro_robust=True)
 
+#%%
 """
 def retrieve_dates(df):
     l = len(df.columns)

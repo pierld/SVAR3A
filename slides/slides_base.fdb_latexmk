@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1702662288 "/Users/prld/git/SVAR3A/slides/slides_base.tex" "slides_base.pdf" "slides_base" 1702662290 0
-  "/Users/prld/git/SVAR3A/slides/slides_base.tex" 1702662288 5145 69dbc393f25f9e931dc6ed4ac8929006 ""
+["pdflatex"] 1703264259 "/Users/prld/git/SVAR3A/slides/slides_base.tex" "slides_base.pdf" "slides_base" 1703264260 0
+  "/Users/prld/git/SVAR3A/slides/slides_base.tex" 1703264259 5225 ebee929407af16ea2b15d5326fe155dd ""
   "/usr/local/texlive/2023/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2023/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1246382020 1004 54797486969f23fa377b128694d548df ""
   "/usr/local/texlive/2023/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex9.tfm" 1246382020 996 a18840b13b499c08ac2de96a99eda4bc ""
@@ -240,11 +240,11 @@
   "/usr/local/texlive/2023/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1684794514 4623355 b8cad38412faebe1ce5b780a45db67bd ""
   "/usr/local/texlive/2023/texmf-var/web2c/pdftex/pdflatex.fmt" 1684794436 7883455 32e0f4515fedc3740dab0e872a92dfba ""
   "/usr/local/texlive/2023/texmf.cnf" 1678822455 577 1b2b1af17af2508fb20dd85783af4050 ""
-  "slides_base.aux" 1702662289 3995 4470e2cf65f6c52f4f3cad45274047e0 "pdflatex"
-  "slides_base.nav" 1702662289 2215 72f280e12ea991025f1157f0a0e4dd05 "pdflatex"
-  "slides_base.out" 1702662289 692 73b899535f4ead1546b302133fbc489b "pdflatex"
-  "slides_base.tex" 1702662288 5145 69dbc393f25f9e931dc6ed4ac8929006 ""
-  "slides_base.toc" 1702662289 307 5db9b665cfc2034fa312b7b8a0bd095d "pdflatex"
+  "slides_base.aux" 1703264260 3995 4470e2cf65f6c52f4f3cad45274047e0 "pdflatex"
+  "slides_base.nav" 1703264260 2215 72f280e12ea991025f1157f0a0e4dd05 "pdflatex"
+  "slides_base.out" 1703264260 692 73b899535f4ead1546b302133fbc489b "pdflatex"
+  "slides_base.tex" 1703264259 5225 ebee929407af16ea2b15d5326fe155dd ""
+  "slides_base.toc" 1703264260 307 5db9b665cfc2034fa312b7b8a0bd095d "pdflatex"
   (generated)
   "slides_base.aux"
   "slides_base.log"
