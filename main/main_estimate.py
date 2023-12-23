@@ -13,10 +13,20 @@ import matplotlib
 
 #%%
 # === Data (index = HICP & Qt without log transf.) ===
-df_w = pd.read_excel("/Users/prld/git/SVAR3A/main/data/data_flat.xlsx",sheet_name="weights")
-df_q_index = pd.read_excel("/Users/prld/git/SVAR3A/main/data/data_flat.xlsx",sheet_name="QT_index")
-df_p_index = pd.read_excel("/Users/prld/git/SVAR3A/main/data/data_flat.xlsx",sheet_name="P_index")
-df_overall = pd.read_excel("/Users/prld/git/SVAR3A/main/data/overall_hicp.xlsx",sheet_name="overall")
+"""
+#df_w = pd.read_excel("data/data_flat.xlsx",sheet_name="weights")
+#df_q_index = pd.read_excel("data/data_flat.xlsx",sheet_name="QT_index")
+#df_p_index = pd.read_excel("data/data_flat.xlsx",sheet_name="P_index")
+#df_overall = pd.read_excel("data/overall_hicp.xlsx",sheet_name="overall")
+"""
+df_w = pd.read_csv("data/df_w.csv")
+df_q_index = pd.read_csv("data/df_q_index.csv")
+df_p_index = pd.read_csv("data/df_p_index.csv")
+df_overall = pd.read_csv("data/df_overall.csv")
+df_w = df_w.drop(['Unnamed: 0'],axis=1)
+df_q_index = df_q_index.drop(['Unnamed: 0'],axis=1)
+df_p_index = df_p_index.drop(['Unnamed: 0'],axis=1)
+df_overall = df_overall.drop(['Unnamed: 0'],axis=1)
 #```
 df_q_index.replace("European Union - 27 countries (from 2020)","EU27",inplace=True)
 df_p_index.replace("European Union - 27 countries (from 2020)","EU27",inplace=True)
@@ -161,7 +171,10 @@ class CPIframe:
         x['inflation'] = self.inflation[[col_num]]
         x.index = pd.to_datetime(x.index)
         x["temp"] = x.index.year
-        x["weight"] = x["temp"].apply(lambda x: self.weights.loc[x,col_num])
+        try:
+            x["weight"] = x["temp"].apply(lambda x: self.weights.loc[x,col_num])
+        except:
+            x["weight"] = x["temp"].apply(lambda x: self.weights.loc[str(x),col_num])
         x = x.drop("temp",axis=1)
         x["infw"] = x["inflation"]*x["weight"]/1000
         if drop==True:
@@ -772,18 +785,12 @@ class CPIlabel:
         ax.legend(leg,loc = "upper left")
         ax.figure.set_facecolor('white')
         
-    
-
 
 #%%
 #? =====================================================================
 #meta = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="France")
 #cpi = CPIlabel(meta=meta)
-
-#%%
 #t1 = sector_estimation(meta=meta,col=64,shapiro_robust=True)
-#t2 = sector_estimation(meta=eu,col=11,shapiro_robust=True)
-
 #%%
 """
 def retrieve_dates(df):

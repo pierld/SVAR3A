@@ -116,44 +116,46 @@ def model_run(country,order,robust):
 #=======================#
 st.markdown('# HICP CLASSIFICATION')
 
-cpi = model_run(country=country,order=order,robust=robust)
+try:
+    cpi = model_run(country=country,order=order,robust=robust)
 
-if country!=None:
-    #*(Baseline)
-    st.markdown('### Baseline Shapiro classification')
-    if order=="auto":
-        shapiro_base = plot_stack(df=cpi.shapiro_aic,col=cpi.meth,method="shapiro",robust=None,unclassified=unclass,year=year)
-    else:
-        shapiro_base = plot_stack(df=cpi.shapiro,col=cpi.meth,method="shapiro",robust=None,unclassified=unclass,year=year)
-    st.plotly_chart(shapiro_base,use_container_width=True)
-    st.markdown('### Baseline Sheremirov classification')
-    sherem_base = plot_stack(df=cpi.sheremirov,method="sheremirov",robust=None,unclassified=unclass,year=year)
-    st.plotly_chart(sherem_base,use_container_width=True)
-    
-    #*(Cross)
-    st.markdown('### Cross-correlations')
-    c1, c2 = st.columns(2)
-    with c1:
-        dem_corr = correlation(df=cpi.demand_corr_v)
-        st.pyplot(dem_corr)
-    with c2:
-        sup_corr = correlation(df=cpi.supply_corr_v)
-        st.pyplot(sup_corr)
-    
-    if robust:
-        st.markdown('### Robust Shapiro classification : '+shap_rob_plot)
+    if country!=None:
+        #*(Baseline)
+        st.markdown('### Baseline Shapiro classification')
         if order=="auto":
-            shapiro_r = plot_stack(df=cpi.shapiro_aic_r,col=cpi.meth,method="shapiro",robust=shap_rob_plot,unclassified=unclass,year=year)
+            shapiro_base = plot_stack(df=cpi.shapiro_aic,col=cpi.meth,method="shapiro",robust=None,unclassified=unclass,year=year)
         else:
-            shapiro_r = plot_stack(df=cpi.shapiro_r,col=cpi.meth,method="shapiro",robust=shap_rob_plot,unclassified=unclass,year=year)
-        st.plotly_chart(shapiro_r,use_container_width=True)
-        st.markdown('### Robust Sheremirov classification')
-        sherem_r = plot_stack(df=cpi.sheremirov,method="sheremirov",robust="complex",unclassified=unclass,year=year)
-        st.plotly_chart(sherem_r,use_container_width=True)
+            shapiro_base = plot_stack(df=cpi.shapiro,col=cpi.meth,method="shapiro",robust=None,unclassified=unclass,year=year)
+        st.plotly_chart(shapiro_base,use_container_width=True)
+        st.markdown('### Baseline Sheremirov classification')
+        sherem_base = plot_stack(df=cpi.sheremirov,method="sheremirov",robust=None,unclassified=unclass,year=year)
+        st.plotly_chart(sherem_base,use_container_width=True)
+        
+        #*(Cross)
+        st.markdown('### Cross-correlations')
+        c1, c2 = st.columns(2)
+        with c1:
+            dem_corr = correlation(df=cpi.demand_corr_v)
+            st.pyplot(dem_corr)
+        with c2:
+            sup_corr = correlation(df=cpi.supply_corr_v)
+            st.pyplot(sup_corr)
+        
+        if robust:
+            st.markdown('### Robust Shapiro classification : '+shap_rob_plot)
+            if order=="auto":
+                shapiro_r = plot_stack(df=cpi.shapiro_aic_r,col=cpi.meth,method="shapiro",robust=shap_rob_plot,unclassified=unclass,year=year)
+            else:
+                shapiro_r = plot_stack(df=cpi.shapiro_r,col=cpi.meth,method="shapiro",robust=shap_rob_plot,unclassified=unclass,year=year)
+            st.plotly_chart(shapiro_r,use_container_width=True)
+            st.markdown('### Robust Sheremirov classification')
+            sherem_r = plot_stack(df=cpi.sheremirov,method="sheremirov",robust="complex",unclassified=unclass,year=year)
+            st.plotly_chart(sherem_r,use_container_width=True)
+except:
+    pass
 
 
 
 
 
-
-    
+        
