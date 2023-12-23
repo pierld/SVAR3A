@@ -4,7 +4,6 @@ import plotly.graph_objects as go
 import plotly.express as px
 from main_estimate import *
 
-
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
 
 #=======================#
