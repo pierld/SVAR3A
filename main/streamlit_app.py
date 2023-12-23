@@ -2,16 +2,13 @@ import streamlit as st
 import plotly.tools as tls
 import plotly.graph_objects as go
 import plotly.express as px
-import os
-#from main_estimate import *
+from main_estimate import *
 
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
 
 #=======================#
-#with open('style.css') as f:
-#    st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
-
-st.text(os.getcwd())
+with open(os.getcwd()+"/style.css") as f:
+    st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 st.sidebar.header('Model parameters')
 
@@ -49,7 +46,7 @@ Sources: [Shapiro(2022)](https://drive.google.com/file/d/1V-4nZikSTcfL4jZQLtwjEO
 ''')
 #=======================#
 
-"""
+
 def plot_stack(df,col=None,method="shapiro",robust=None,unclassified:bool=True,year:int=2015):
             
     def yrindex(ind):
@@ -147,4 +144,5 @@ try:
             st.plotly_chart(sherem_r,use_container_width=True)
 except:
     pass
-"""        
+     
+st.text(os.getcwd())
