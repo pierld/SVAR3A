@@ -116,6 +116,7 @@ def model_run(country,order,robust):
 #=======================#
 st.markdown('# HICP CLASSIFICATION')
 
+"""
 try:
     cpi = model_run(country=country,order=order,robust=robust)
 
@@ -153,9 +154,4 @@ try:
             st.plotly_chart(sherem_r,use_container_width=True)
 except:
     pass
-
-
-
-
-
-        
+"""        
