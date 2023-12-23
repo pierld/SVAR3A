@@ -4,13 +4,12 @@ import pandas as pd
 import statsmodels.api as sm
 from statsmodels.tsa.api import VAR, acf
 import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
-import sys
 from typing import Union
 from statistics import NormalDist
 from tqdm import tqdm
+import matplotlib
 
 #%%
 # === Data (index = HICP & Qt without log transf.) ===

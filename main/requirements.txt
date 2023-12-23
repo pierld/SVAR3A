@@ -1,1 +1,8 @@
-streamlit>=1.26.0
+streamlit>=1.29.0
+pandas>=1.4.3
+plotly>=5.18.0
+statsmodels>=0.14.0
+numpy>=1.22.4
+seaborn-base>=0.13.0
+tqdm>=4.66.1
+

@@ -1,11 +1,9 @@
-from matplotlib import legend
 import streamlit as st
 import plotly.tools as tls
 import plotly.graph_objects as go
 import plotly.express as px
-
 from main_estimate import *
-matplotlib.rcParams['figure.figsize'] = [20, 9]
+
 
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
 
