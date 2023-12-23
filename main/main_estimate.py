@@ -10,7 +10,7 @@ from typing import Union
 from statistics import NormalDist
 from tqdm import tqdm
 import matplotlib
-import os
+from pathlib import Path
 
 #%%
 # === Data (index = HICP & Qt without log transf.) ===
@@ -20,12 +20,11 @@ import os
 #df_p_index = pd.read_excel("data/data_flat.xlsx",sheet_name="P_index")
 #df_overall = pd.read_excel("data/overall_hicp.xlsx",sheet_name="overall")
 """
-path = os.getcwd()+"/"
 
-df_w = pd.read_csv(path+"df_w.csv")
-df_q_index = pd.read_csv(path+"df_q_index.csv")
-df_p_index = pd.read_csv(path+"df_p_index.csv")
-df_overall = pd.read_csv(path+"df_overall.csv")
+df_w = pd.read_csv(Path(__file__).parents[0] / 'df_q_index.csv')
+df_q_index = pd.read_csv(Path(__file__).parents[0] / "df_q_index.csv")
+df_p_index = pd.read_csv(Path(__file__).parents[0] / "df_p_index.csv")
+df_overall = pd.read_csv(Path(__file__).parents[0] / "df_overall.csv")
 df_w = df_w.drop(['Unnamed: 0'],axis=1)
 df_q_index = df_q_index.drop(['Unnamed: 0'],axis=1)
 df_p_index = df_p_index.drop(['Unnamed: 0'],axis=1)

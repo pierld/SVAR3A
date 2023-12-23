@@ -7,4 +7,5 @@ tqdm>=4.66.1
 seaborn
 statistics
 typing
+pathlib
 
