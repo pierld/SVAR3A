@@ -711,13 +711,13 @@ class CPIlabel:
         if comp not in ["supply","demand"]:
             return
         else:
+            fig = plt.figure(figsize=(20, 9))
             if comp=="supply":
                 mask = np.triu(np.ones_like(self.supply_corr_v, dtype=bool),k=1)
                 sns.heatmap(self.supply_corr_v, annot=True, fmt='.2f', cmap="BuPu", linewidths=0.3, vmax=1, mask=mask)
             else:
                 mask = np.triu(np.ones_like(self.demand_corr_v, dtype=bool),k=1)
                 sns.heatmap(self.demand_corr_v, annot=True, fmt='.2f', cmap="BuPu", linewidths=0.3, vmax=1, mask=mask)
-            return
 
     def plot_stack(self,df,method="shapiro",robust=None,unclassified:bool=True,year:int=2015):
         """
@@ -762,7 +762,8 @@ class CPIlabel:
         if unclassified==True:
             cols.append('unclassified')
             leg.append('Unclassified')
-            color.append('darkgray')        
+            color.append('darkgray')      
+        fig = plt.figure(figsize=(20, 9))  
         f = df[df.index.year>year][cols+['total']]
         ind = f.index
         f = f.reset_index(drop=True)
@@ -771,6 +772,7 @@ class CPIlabel:
         ax.set_xticklabels(yrindex(ind))
         ax.legend(leg,loc = "upper left")
         ax.figure.set_facecolor('white')
+        
     
 
 

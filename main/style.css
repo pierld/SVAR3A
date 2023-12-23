@@ -1,0 +1,8 @@
+/* Logo */
+/* Adapted from Zachary Blackwood */
+[data-testid="stSidebar"] {
+    background-image: url(https://imgs.search.brave.com/DsiGn7fP_zUkeoS5iJBz5elN9GWkNP2M9g_N6WiuZrE/rs:fit:860:0:0/g:ce/aHR0cHM6Ly93d3cu/ZW5zYWUuZnIvc2l0/ZXMvZGVmYXVsdC9m/aWxlcy9uYy1sb2Fk/ZXIvbG9hZGVyX2xv/Z28ucG5n);
+    background-size: 225px;
+    background-repeat: no-repeat;
+    background-position: 20px 20px;
+}
