@@ -13,10 +13,10 @@ import matplotlib
 
 #%%
 # === Data (index = HICP & Qt without log transf.) ===
-df_w = pd.read_excel("data/data_flat.xlsx",sheet_name="weights")
-df_q_index = pd.read_excel("data/data_flat.xlsx",sheet_name="QT_index")
-df_p_index = pd.read_excel("data/data_flat.xlsx",sheet_name="P_index")
-df_overall = pd.read_excel("data/overall_hicp.xlsx",sheet_name="overall")
+df_w = pd.read_excel("./data/data_flat.xlsx",sheet_name="weights")
+df_q_index = pd.read_excel("./data/data_flat.xlsx",sheet_name="QT_index")
+df_p_index = pd.read_excel("./data/data_flat.xlsx",sheet_name="P_index")
+df_overall = pd.read_excel("./data/overall_hicp.xlsx",sheet_name="overall")
 #```
 df_q_index.replace("European Union - 27 countries (from 2020)","EU27",inplace=True)
 df_p_index.replace("European Union - 27 countries (from 2020)","EU27",inplace=True)
