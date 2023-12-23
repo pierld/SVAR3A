@@ -2,7 +2,7 @@ import streamlit as st
 import plotly.tools as tls
 import plotly.graph_objects as go
 import plotly.express as px
-from main_estimate import *
+#from main_estimate import *
 
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
 
@@ -46,18 +46,9 @@ Sources: [Shapiro(2022)](https://drive.google.com/file/d/1V-4nZikSTcfL4jZQLtwjEO
 ''')
 #=======================#
 
+"""
+
 def plot_stack(df,col=None,method="shapiro",robust=None,unclassified:bool=True,year:int=2015):
-    """
-    Args:
-        - df : attribute of CPIlabel
-            - shapiro_aic / shapiro_bic / shapiro
-            - shapiro_aic_r / shapiro_bic_r / shapiro_r
-            - sheremirov
-        - method : "shapiro" or "sheremirov"
-        - robust : in ['j1','j2','j3','param'] for "shapiro" / "complex" shows Persistent/Trans decompostion for "sheremirov"
-        - unclassified : show unclassified component
-        - unclassified : show total inflation
-    """
             
     def yrindex(ind):
         x = []
@@ -105,6 +96,7 @@ def correlation(df):
     sns.heatmap(df, annot=True, fmt='.2f', cmap="BuPu", linewidths=0.3, vmax=1, mask=mask, ax=ax)
     return fig
 
+
 @st.cache_resource
 def model_run(country,order,robust):
     if country!=None:
@@ -116,7 +108,6 @@ def model_run(country,order,robust):
 #=======================#
 st.markdown('# HICP CLASSIFICATION')
 
-"""
 try:
     cpi = model_run(country=country,order=order,robust=robust)
 
