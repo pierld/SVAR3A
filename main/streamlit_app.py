@@ -13,14 +13,9 @@ with open(Path(__file__).parents[0] / "style.css") as f:
 st.sidebar.header('Model parameters')
 
 country = st.sidebar.selectbox('Country', ('EU27','France','Germany','Spain'),index=None) 
-robust = st.sidebar.selectbox('Robust methods', (True,False), index=1)
 unclass = st.sidebar.selectbox('Show unclassified', (True,False), index=0)
+year = st.sidebar.selectbox('Chart start year date:',[i for i in range(2023,2000,-1)],index=8)
 
-if robust==True:
-    st.sidebar.markdown('''---''') 
-    shap_rob_plot = st.sidebar.selectbox('Plot Shapiro robust method', ['j1','j2','j3','param'], index=3)
-else:
-    shap_rob_plot = None
 st.sidebar.markdown('''---''')     
 
 order = st.sidebar.selectbox('VAR order', ("auto","fixed"), index=0)
@@ -34,7 +29,13 @@ elif order=="fixed":
     except:
         order = None
         st.sidebar.error('Enter valid integer') #icon="🚨"
-year = st.sidebar.selectbox('Chart start year date:',[i for i in range(2000,2023)],index=15)
+        
+robust = st.sidebar.selectbox('Robust methods', (True,False), index=1)       
+if robust==True:
+    #st.sidebar.markdown('''---''') 
+    shap_rob_plot = st.sidebar.selectbox('Plot Shapiro robust method', ['j1','j2','j3','param'], index=3)
+else:
+    shap_rob_plot = None
  
 st.sidebar.markdown('''
 ---
@@ -44,8 +45,8 @@ Sources: [Shapiro(2022)](https://drive.google.com/file/d/1V-4nZikSTcfL4jZQLtwjEO
 [Sheremirov(2022)](https://www.bostonfed.org/publications/current-policy-perspectives/2022/are-the-demand-and-supply-channels-of-inflation-persistent.aspx),
 [ECB(box 7)](https://www.ecb.europa.eu/pub/economic-bulletin/html/eb202207.en.html)
 ''')
-#=======================#
-
+#=====================================================#
+#=====================================================#
 
 def plot_stack(df,col=None,method="shapiro",robust=None,unclassified:bool=True,year:int=2015):
             
@@ -82,7 +83,7 @@ def plot_stack(df,col=None,method="shapiro",robust=None,unclassified:bool=True,y
         cols.append('unclassified')
         leg.append('Unclassified')
         color.append('darkgray')        
-    f = df[df.index.year>year][cols+['total']]
+    f = df[df.index.year>=year][cols+['total']]
     f = f.rename(columns={cols[i]:leg[i] for i in range(len(cols))})
     f = f.reset_index()
     fig = px.bar(f,y=leg,x="index",labels={"index":"year","value":"%YoY HICP"},color_discrete_sequence=color)
@@ -96,7 +97,6 @@ def correlation(df):
     sns.heatmap(df, annot=True, fmt='.2f', cmap="BuPu", linewidths=0.3, vmax=1, mask=mask, ax=ax)
     return fig
 
-
 @st.cache_resource
 def cpi_classifier(country,order,robust):
     if country!=None:
@@ -105,7 +105,8 @@ def cpi_classifier(country,order,robust):
             cpi = CPIlabel(meta=meta,order=order,shap_robust=robust)
     return cpi
 
-#=======================#
+#=====================================================#
+#=====================================================#
 st.markdown('# HICP CLASSIFICATION')
 
 if country==None:
@@ -137,15 +138,15 @@ if country!=None:
             st.pyplot(sup_corr)
         
         if robust:
-            st.markdown('### Robust Shapiro classification : '+shap_rob_plot)
+            st.markdown('### Robust Sheremirov classification')
+            sherem_r = plot_stack(df=cpi.sheremirov,method="sheremirov",robust="complex",unclassified=unclass,year=year)
+            st.plotly_chart(sherem_r,use_container_width=True)
+            st.markdown('### Robust Shapiro classification '+"["+shap_rob_plot+"]")
             if order=="auto":
                 shapiro_r = plot_stack(df=cpi.shapiro_aic_r,col=cpi.meth,method="shapiro",robust=shap_rob_plot,unclassified=unclass,year=year)
             else:
                 shapiro_r = plot_stack(df=cpi.shapiro_r,col=cpi.meth,method="shapiro",robust=shap_rob_plot,unclassified=unclass,year=year)
             st.plotly_chart(shapiro_r,use_container_width=True)
-            st.markdown('### Robust Sheremirov classification')
-            sherem_r = plot_stack(df=cpi.sheremirov,method="sheremirov",robust="complex",unclassified=unclass,year=year)
-            st.plotly_chart(sherem_r,use_container_width=True)
     except:
         st.error('Error in code',icon="🚨")
 
