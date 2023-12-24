@@ -59,7 +59,7 @@ def plot_stack(df,col=None,method="shapiro",robust=None,unclassified:bool=True,y
         return x
 
     if method=="shapiro":
-        color = ['cornflowerblue','tab:red']
+        color = ['cornflowerblue','indianred']
         if robust==None:
             #cols = self.meth["base"].copy()
             cols = col["base"].copy()
@@ -72,11 +72,11 @@ def plot_stack(df,col=None,method="shapiro",robust=None,unclassified:bool=True,y
         if robust=="complex":
             cols = ["dem_pers","dem_trans","sup_pers","sup_trans"]
             leg = ["Persistent demand","Transitory demand","Persistent supply","Transitory supply"]
-            color = ['mediumseagreen','royalblue','indianred','orange']
+            color = ['mediumseagreen','royalblue','brown','orange']
         else:
             cols = ["dem","sup"]
             leg = ['Demand','Supply']
-            color = ['cornflowerblue','tab:red']
+            color = ['cornflowerblue','indianred']
 
     if unclassified==True:
         cols.append('unclassified')
@@ -85,8 +85,9 @@ def plot_stack(df,col=None,method="shapiro",robust=None,unclassified:bool=True,y
     f = df[df.index.year>year][cols+['total']]
     f = f.rename(columns={cols[i]:leg[i] for i in range(len(cols))})
     f = f.reset_index()
-    fig = px.bar(f,y=leg,x="index",labels={"index":"year","value":"%YoY HICP"})
-    fig.add_trace(trace=go.Scatter(x=f["index"],y=f["total"], name="Total", fillcolor="black"))
+    fig = px.bar(f,y=leg,x="index",labels={"index":"year","value":"%YoY HICP"},color_discrete_sequence=color)
+    fig.add_trace(trace=go.Scatter(x=f["index"],y=f["total"], name="Total",mode='lines+markers', line_color="black"))
+    #https://stackoverflow.com/questions/58188816/change-line-color-in-plotly
     return fig
 
 def correlation(df):
@@ -97,7 +98,7 @@ def correlation(df):
 
 
 @st.cache_resource
-def model_run(country,order,robust):
+def cpi_classifier(country,order,robust):
     if country!=None:
         meta = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country=str(country))
         if order != None:
@@ -107,10 +108,13 @@ def model_run(country,order,robust):
 #=======================#
 st.markdown('# HICP CLASSIFICATION')
 
-try:
-    cpi = model_run(country=country,order=order,robust=robust)
+if country==None:
+    st.error('Select country',icon="🚨")
 
-    if country!=None:
+if country!=None:
+    try:
+        cpi = cpi_classifier(country=country,order=order,robust=robust)
+
         #*(Baseline)
         st.markdown('### Baseline Shapiro classification')
         if order=="auto":
@@ -142,6 +146,6 @@ try:
             st.markdown('### Robust Sheremirov classification')
             sherem_r = plot_stack(df=cpi.sheremirov,method="sheremirov",robust="complex",unclassified=unclass,year=year)
             st.plotly_chart(sherem_r,use_container_width=True)
-except:
-    pass
+    except:
+        st.error('Error in code',icon="🚨")
 
