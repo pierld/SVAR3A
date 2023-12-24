@@ -11,7 +11,6 @@ from statistics import NormalDist
 from tqdm import tqdm
 import matplotlib
 from pathlib import Path
-
 #%%
 # === Data (index = HICP & Qt without log transf.) ===
 """
