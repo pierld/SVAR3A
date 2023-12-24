@@ -1450,6 +1450,7 @@ INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/eulervm/zeurm10.tfm
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/symbol/psyr.tfm
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/symbol/psyr.tfm
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/symbol/psyr.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/sourceserifpro/SourceSerifPro-Regular-lf-sc-t1.tfm
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/sourceserifpro/SourceSerifPro-Regular-lf-t1.tfm
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/sourceserifpro/SourceSerifPro-Bold-lf-t1.tfm
 INPUT ./main.toc
@@ -1488,6 +1489,9 @@ INPUT /usr/local/texlive/2023/texmf-var/fonts/map/pdftex/updmap/pdftex.map
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/enc/dvips/sourceserifpro/a_rlbtkr.enc
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/vf/adobe/sourceserifpro/SourceSerifPro-Regular-lf-t1.vf
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/sourceserifpro/SourceSerifPro-Regular-lf-t1--base.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/vf/adobe/sourceserifpro/SourceSerifPro-Regular-lf-sc-t1.vf
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/sourceserifpro/SourceSerifPro-Regular-lf-sc-t1--base.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/enc/dvips/sourceserifpro/a_lseshj.enc
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/vf/adobe/sourceserifpro/SourceSerifPro-Regular-lf-t1.vf
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/sourceserifpro/SourceSerifPro-Regular-lf-t1--base.tfm
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/vf/adobe/sourceserifpro/SourceSerifPro-It-lf-t1.vf
@@ -1555,7 +1559,6 @@ INPUT ./img/dem_heat.png
 INPUT ./img/dem_heat.png
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/vf/adobe/sourceserifpro/SourceSerifPro-Regular-lf-sc-t1.vf
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/sourceserifpro/SourceSerifPro-Regular-lf-sc-t1--base.tfm
-INPUT /usr/local/texlive/2023/texmf-dist/fonts/enc/dvips/sourceserifpro/a_lseshj.enc
 INPUT ./img/sup_heat.png
 INPUT ./img/sup_heat.png
 INPUT img/sup_heat.png
