@@ -53,14 +53,14 @@ We implement the the two alternative methods that are the smoothed-errors classi
 In the latter, each month a sector is no longer deterministically classified as experiencing a supply or a demand shock but there rather is a probability $p_t^K$ that it is experiencing a shock of type $K \in$\{supply,demand\}.
 \bigbreak
 The smoothed-errors classification amounts to considering $\sum_{k=0}^{j} \nu_{i,k}^{q}$ and $\sum_{k=0}^{j} \nu_{i,k}^{p}$ instead of simply $\nu_{i,t}^{q}$ and $\nu_{i,t}^{p}$ in the aforementioned classification. 
-The parameter $j$ is an hyperparamter, set to be the same for each sector. In his paper Shapiro tries different values (ranging from 1 to 3) meaning for each month $t$ it is the sign of the (average) $j$ previous months that matter.
+The parameter $j$ is an hyperparamter, set to be the same for each sector. In his paper Shapiro tries different values (ranging from 1 to 3) meaning for each month $t$ it is the sign of the (average) $j$ previous months residuals that matter.
 
 
 % ============================================
 % ============================================
 \subsection{Classification from \textit{Sheremirov (2022)}}
 
-The algorithm proposed by Sheremirov is as follows, for each sector $i$ and month $t$ :
+\quad The algorithm proposed by Sheremirov is as follows, for each sector $i$ and month $t$ :
 \begin{itemize}
     \item[1.] Compute year-over-year inflation and (real) consumption/demand growth : $\pi_{i,t},c_{i,t}$
     \item[2.] Classify the sector $i$ as experiencing a demand shock at month $t$ if both inflation and consumption growth are over their 2001-2019 respective average $\tilde{\pi_i},\tilde{c_i}$ : 
@@ -78,11 +78,29 @@ The algorithm proposed by Sheremirov is as follows, for each sector $i$ and mont
 \quad The Sheremirov methodology was implemented to assess to what extent classifications derived from Shapiro's methods would be consistent with alternative methods, especially one not based on a VAR estimation. 
 However the distinction it provides between transitory and persistent components makes it really interesting for policy-makers even though the classification is solely backward-looking.
 \bigbreak
-On this basis we could suggest tweaking the classification the following way, challenging the set number of months (11) for the classification and the pure backward-looking perspective:
+
+\subsection{Proposed classification rule}
+
+\quad On this basis we suggest tweaking the classification outlined by Sheremirov, challenging the set number of months (11) for the persistent classification and the pure backward-looking perspective. 
+Moreover, as our first step relies on the simple demand-supply classification, we can use both results from the demand-supply classification of Shapiro or (step 2 of) Sheremirov.
+The aim of our proposed classification is to leverage the initial supply-demand classification, decomposing each as transitory-persistent (as Sheremirov did) with a feedback rule, sort of a forward-looking perspective. 
+A month that had been categorized as transitory can be re-classifed as persistent once "enough" data has been added (the "enough" word should become clearer after step 2).
+We propose the following algorithm:
 \begin{itemize}
-    \item[1.] Classify month $t$ as experiencing a demand or supply shock according to the previous rule (step 2.) 
-    \item[2.] PRESQUE FINI
+    \item[1.] Classify month $t$ for sector $i$ as experiencing a demand or supply shock: either through Shapiro's rule or step 2. of Sheremirov's algorithm.
+    \item[2.] We introduce the following modified rule, where $K$ can be debated but we set the baseline as $K=3$:
+    \begin{align*}
+        \textrm{Persistent demand} \; \ind_{i,dem}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \ind_{i,dem}(t-k)=\ind_{i,dem}(t+k) = 1 \; \textrm{for}\; k \in[1,K] \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+        \textrm{Persistent supply} \; \ind_{i,sup}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \ind_{i,sup}(t-k)=\ind_{i,sup}(t+k) = 1 \; \textrm{for}\; k \in[1,K] \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+        \textrm{\textit{Ambiguous} demand} \; \ind_{i,dem}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; t\in [T-K+1,T] \; \textrm{and both}\\ \quad \; \; \rightarrow \ind_{i,dem}(t-k)= 1 \; \textrm{for}\; k \in[1,K] \\ \quad \; \; \rightarrow \ind_{i,dem}(t-k^{'})= 1 \; \textrm{for}\; k^{'} \in[T-t,T] \\ \textrm{\textit{i.e almost satisfies pers. but some} $t+k$ \textit{is unobserved!}} \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+        \textrm{\textit{Ambiguous} supply} \; \ind_{i,sup}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; t\in [T-K+1,T] \; \textrm{and both}\\ \quad \; \; \rightarrow \ind_{i,sup}(t-k)= 1 \; \textrm{for}\; k \in[1,K] \\ \quad \; \; \rightarrow \ind_{i,sup}(t-k^{'})= 1 \; \textrm{for}\; k^{'} \in[T-t,T] \\ \textrm{\textit{i.e almost satisfies pers. but some} $t+k$ \textit{is unobserved!}} \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+        %\textrm{\textit{Ambiguous} demand} \; \ind_{i,dem}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; \ind_{i,dem}(t-k)=\ind_{i,dem}(t+k^{'}) = 1 \; \textrm{for}\; k \in[1,K] \; \textrm{and} \\ \quad \; \; k^{'}\in[1,K_{<T}] \;\textrm{where}\; t+K_{t}=T \;, 0\le K_{t}<K \\ \quad \; \; \textrm{i.e} \; t\in [T-K+1,T]\\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+    \end{align*}
+    \item[3.] If neither condition is verified, month $t$ is simply classified as transitory demand (if $\ind_{i,dem}(t)=1$) or transitory supply.
 \end{itemize}
+
+Hence, when $K=3$, the last three observations ($t\in[T-2,T]=[T-K+1,T]$) are automatically categorized as ambiguous (ambiguous in the sense of undetermined between transitory and persistent). 
+Once data for date $T+1$ is observed, the classfication of month $T-2$ is changed if it either satisfies the "complete" persistent supply or demand criterion. Otherwise remains as transitory.
 
 
 \clearpage

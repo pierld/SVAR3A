@@ -1547,6 +1547,18 @@ INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/bbold/bbold10.tfm
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/bbold/bbold8.tfm
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/bbold/bbold12.tfm
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/bbold/bbold17.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/bbold/bbold6.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam5.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/bbold/bbold5.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/cm/cmbx5.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmmib5.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmbsy5.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/sourceserifpro/SourceSerifPro-Regular-lf-t1.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/sourceserifpro/SourceSerifPro-It-lf-t1.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/public/eulervm/zeurm5.tfm
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/symbol/psyr.tfm
 INPUT ./core/3. Results.tex
 INPUT core/3. Results.tex
 INPUT ./core/3. Results.tex
@@ -1575,5 +1587,6 @@ INPUT /usr/local/texlive/2023/texmf-dist/fonts/type1/public/bbold-type1/bbold10.
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb
+INPUT /usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/euler/eurm10.pfb
 INPUT /usr/local/texlive/2023/texmf-dist/fonts/type1/urw/symbol/usyr.pfb
