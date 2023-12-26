@@ -18,7 +18,7 @@ Note that we said 75 sectors had matched proxy quantity series, but we cannot ru
 Thus, for each zone in our study (France, Germany, Spain and EU27) we flag sectors that have data problems for either the price or quantity series. A sector being flagged mainly stems from the latest data available being earlier than 2023 (some stop in 2022 or 2020 and some even in 2015).
 Overall we run regressions on 52 (EU27) to 72 (France) sectors.
 \bigbreak
-The estimated reduced-form residuals $(\nu_{t}^{q},\nu_{t}^{p})$ (equivalent to $(\nu_{t}^{s},\nu_{t}^{d})$ in the previous section) are then used to label each sector in each month using the following rule :
+The estimated reduced-form residuals $(\nu_{t}^{q},\nu_{t}^{p})$ (equivalent to $(\nu_{t}^{s},\nu_{t}^{d})$ in the previous section) are then used to label each month $(t)$ for each sector $(i)$ using the following rule
 \begin{align*}
     \ind_{i,sup(+)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}>0,\nu_{i,t}^{p}<0 \\ 0 \quad \textrm{otherwise} \end{cases} \\
     \ind_{i,sup(-)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}<0,\nu_{i,t}^{p}>0 \\ 0 \quad \textrm{otherwise} \end{cases} \\
@@ -51,6 +51,9 @@ In our version, as the lag order for each VAR is automatically selected (and if 
 \bigbreak
 We implement the the two alternative methods that are the smoothed-errors classification (to offset possible measurement errors) and the parametric approach. 
 In the latter, each month a sector is no longer deterministically classified as experiencing a supply or a demand shock but there rather is a probability $p_t^K$ that it is experiencing a shock of type $K \in$\{supply,demand\}.
+\bigbreak
+The smoothed-errors classification amounts to considering $\sum_{k=0}^{j} \nu_{i,k}^{q}$ and $\sum_{k=0}^{j} \nu_{i,k}^{p}$ instead of simply $\nu_{i,t}^{q}$ and $\nu_{i,t}^{p}$ in the aforementioned classification. 
+The parameter $j$ is an hyperparamter, set to be the same for each sector. In his paper Shapiro tries different values (ranging from 1 to 3) meaning for each month $t$ it is the sign of the (average) $j$ previous months that matter.
 
 
 % ============================================
@@ -68,10 +71,18 @@ The algorithm proposed by Sheremirov is as follows, for each sector $i$ and mont
     \item[3.] Classify the shock at month $t$ as:
     \begin{align*}
         \textrm{Persistent demand} \; \ind_{i,dem}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \mathlarger{\mathlarger{\sum}}_{k=0}^{11} \ind_{i,dem}(t-k) \geq 11 \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
-        \textrm{Persistent demand} \; \ind_{i,sup}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \mathlarger{\mathlarger{\sum}}_{k=0}^{11} \ind_{i,sup}(t-k) \geq 11 \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+        \textrm{Persistent supply} \; \ind_{i,sup}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \mathlarger{\mathlarger{\sum}}_{k=0}^{11} \ind_{i,sup}(t-k) \geq 11 \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
     \end{align*}
-    \item[3.] If neither condition is verified, month $t$ is classified as transitory demand (if $\ind_{i,dem}(t)=1$) or transitory supply.
+    \item[4.] If neither condition is verified, month $t$ is classified as transitory demand (if $\ind_{i,dem}(t)=1$) or transitory supply.
 \end{itemize}
-\quad The Sheremirov methodology was implemented to assess to what extent classifications derived from Shapiro's methods would be consistent with alternative methods, especially one not based on a VAR estimation.
+\quad The Sheremirov methodology was implemented to assess to what extent classifications derived from Shapiro's methods would be consistent with alternative methods, especially one not based on a VAR estimation. 
+However the distinction it provides between transitory and persistent components makes it really interesting for policy-makers even though the classification is solely backward-looking.
+\bigbreak
+On this basis we could suggest tweaking the classification the following way, challenging the set number of months (11) for the classification and the pure backward-looking perspective:
+\begin{itemize}
+    \item[1.] Classify month $t$ as experiencing a demand or supply shock according to the previous rule (step 2.) 
+    \item[2.] PAS FINI
+\end{itemize}
+
 
 \clearpage
