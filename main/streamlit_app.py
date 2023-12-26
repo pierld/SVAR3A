@@ -131,9 +131,11 @@ if country!=None:
         st.markdown('### Cross-correlations')
         c1, c2 = st.columns(2)
         with c1:
+            st.markdown('#### Demand side')
             dem_corr = correlation(df=cpi.demand_corr_v)
             st.pyplot(dem_corr)
         with c2:
+            st.markdown('#### Supply side')
             sup_corr = correlation(df=cpi.supply_corr_v)
             st.pyplot(sup_corr)
         
