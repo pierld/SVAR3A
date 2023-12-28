@@ -19,15 +19,17 @@ Thus, for each zone in our study (France, Germany, Spain and EU27) we flag secto
 Overall we run regressions on 52 (EU27) to 72 (France) sectors.
 \bigbreak
 The estimated reduced-form residuals $(\nu_{t}^{q},\nu_{t}^{p})$ (equivalent to $(\nu_{t}^{s},\nu_{t}^{d})$ in the previous section) are then used to label each month $(t)$ for each sector $(i)$ using the following rule
-\begin{align*}
-    \ind_{i,sup(+)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}>0,\nu_{i,t}^{p}<0 \\ 0 \quad \textrm{otherwise} \end{cases} \\
-    \ind_{i,sup(-)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}<0,\nu_{i,t}^{p}>0 \\ 0 \quad \textrm{otherwise} \end{cases} \\
-    \ind_{i,dem(+)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}>0,\nu_{i,t}^{p}>0 \\ 0 \quad \textrm{otherwise} \end{cases} \\
-    \ind_{i,dem(-)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}<0,\nu_{i,t}^{p}<0 \\ 0 \quad \textrm{otherwise} \end{cases} \\
-    \Rightarrow \ind_{i,sup}(t) &= \ind_{i,sup(+)}(t) + \ind_{i,sup(-)}(t) \\
-    \Rightarrow \ind_{i,dem}(t) &= \ind_{i,dem(+)}(t) + \ind_{i,dem(-)}(t) \\
-\end{align*}
+\begin{align}
+    \ind_{i,sup(+)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}>0,\nu_{i,t}^{p}<0 \\ 0 \quad \textrm{otherwise} \end{cases} \nonumber\\
+    \ind_{i,sup(-)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}<0,\nu_{i,t}^{p}>0 \\ 0 \quad \textrm{otherwise} \end{cases} \nonumber\\
+    \ind_{i,dem(+)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}>0,\nu_{i,t}^{p}>0 \\ 0 \quad \textrm{otherwise} \end{cases} \nonumber\\
+    \ind_{i,dem(-)}(t) &= \begin{cases} 1 \quad \textrm{if} \; \nu_{i,t}^{q}<0,\nu_{i,t}^{p}<0 \\ 0 \quad \textrm{otherwise} \end{cases} \nonumber\\
+    \Rightarrow \ind_{i,sup}(t) &= \ind_{i,sup(+)}(t) + \ind_{i,sup(-)}(t) \label{shapiro_sup}\\ 
+    \Rightarrow \ind_{i,dem}(t) &= \ind_{i,dem(+)}(t) + \ind_{i,dem(-)}(t) \label{shapiro_dem}\\ \nonumber
+\end{align}
 
+\textit{From now on, at date $t$ experiencing a demand shock or being demand-driven or being labeled demand-driven all mean that $ \ind_{i,dem}(t)=1$ (vice versa with supply).}
+\bigbreak
 It follows that each month, overall month-over-month inflation $\pi_{t,t-1}$ can be devided into supply and demand driven components. 
 As the overall CPI is a weighted average of its sectorial inflation $\pi_{i,t,t-1}$ we denote $\omega_{i,y}$ the weight of sector $(i)$ at year $y$ in the CPI.
 In the following equation $y_t$ means the year of month $t$.
@@ -63,7 +65,7 @@ The parameter $j$ is an hyperparamter, set to be the same for each sector. In hi
 \quad The algorithm proposed by Sheremirov is as follows, for each sector $i$ and month $t$ :
 \begin{itemize}
     \item[1.] Compute year-over-year inflation and (real) consumption/demand growth : $\pi_{i,t},c_{i,t}$
-    \item[2.] Classify the sector $i$ as experiencing a demand shock at month $t$ if both inflation and consumption growth are over their 2001-2019 respective average $\tilde{\pi_i},\tilde{c_i}$ : 
+    \item[2.]\label{sherem2} Classify the sector $i$ as experiencing a demand shock at month $t$ if both inflation and consumption growth are over their 2001-2019 respective average $\tilde{\pi_i},\tilde{c_i}$ : 
     \begin{align*}
         \ind_{i,dem}(t) &= \begin{cases} 1 \quad \textrm{if} \; (\pi_{i,t}-\tilde{\pi_i}).(c_{i,t}-\tilde{c_i})>0 \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
         \ind_{i,sup}(t) &= 1 - \ind_{i,dem}(t)
@@ -82,30 +84,51 @@ However the distinction it provides between transitory and persistent components
 \subsection{Proposed classification rule}
 
 \quad On this basis we suggest tweaking the classification outlined by Sheremirov, challenging the set number of months (11) for the persistent classification and the pure backward-looking perspective. 
-Moreover, as our first step relies on the simple demand-supply classification, we can use both results from the demand-supply classification of Shapiro or (step 2 of) Sheremirov.
-The aim of our proposed classification is to leverage the initial supply-demand classification, decomposing each as transitory-persistent (as Sheremirov did) with a feedback rule, sort of a forward-looking perspective. 
-A month that had been categorized as transitory can be re-classifed as persistent once "enough" data has been added (the "enough" word should become clearer after step 2).
+\bigbreak
+The latter can be a problem as the classification does not rule out persistent demand (or supply) vanishing. 
+Consider a sector $i$ and assume month $t-1$ is not labeled as persistent demand because months $t-10$ and $t-12$ are not labeled as demand-driven and let month $t$ be demand-driven. 
+According to Sheremirov's rule, month $t$ is labeled as persistent demand as we have 11 months classified as demand-driven (only month $t-10$ is not).
+However, if month $t+1$ is not demand-driven, persistent demand vanishes after only one month because at least 2 months are not demand-driven conflicting the criterion.
+Which in our opinion is kind of an awkward situation as the whole purpose of the persitent component is to be persistent and not to instantaneously disappear. 
+Our methodology solves this, as month $t$ would have never been labeled as persistent demand in the first place due to the forward-looking setting we incorporate to the rule.
+\bigbreak
+On another note, as the first step of the classification below relies on the simple dummy demand-supply classification, we can use both results from the labeling of Shapiro or (step.2 of) Sheremirov.
+Our aim is to leverage the initial supply-demand classification, decomposing each as transitory-persistent (as Sheremirov did) with both backward and forward-looking perspectives.
+We add sort of a feedback rule -an ambiguous category- such that the dates for which the forward-looking perspective is not possible (due to unobserved data) are not miss-classified.
+A month that had been categorized as ambiguous can thus be re-classifed once "enough" data have been added.
+\bigbreak
 We propose the following algorithm:
 \begin{itemize}
-    \item[1.] Classify month $t$ for sector $i$ as experiencing a demand or supply shock: either through Shapiro's rule or step 2. of Sheremirov's algorithm.
+    \item[1.] Classify month $t$ for sector $i$ as experiencing a demand or supply shock: either through Shapiro's rule (\ref{shapiro_sup},\ref{shapiro_dem}) or step.2 of Sheremirov's algorithm (\ref{sherem2}).
     \item[2.] We introduce the following modified rule, where $K$ can be debated but we set the baseline as $K=3$:
     \begin{align*}
-        \textrm{Persistent demand} \; \ind_{i,dem}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \ind_{i,dem}(t-k)=\ind_{i,dem}(t+k) = 1 \; \textrm{for}\; k \in[1,K] \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
-        \textrm{Persistent supply} \; \ind_{i,sup}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \ind_{i,sup}(t-k)=\ind_{i,sup}(t+k) = 1 \; \textrm{for}\; k \in[1,K] \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
-        \textrm{\textit{Ambiguous} demand} \; \ind_{i,dem}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; t\in [T-K+1,T] \; \textrm{and both}\\ \quad \; \; \rightarrow \ind_{i,dem}(t-k)= 1 \; \textrm{for}\; k \in[1,K] \\ \quad \; \; \rightarrow \ind_{i,dem}(t+k)= 1 \; \textrm{for}\; k \in[T-t,T] \\ \textrm{\textit{i.e almost satisfies pers. but some} $t+k$ \textit{is unobserved!}} \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
-        \textrm{\textit{Ambiguous} supply} \; \ind_{i,sup}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; t\in [T-K+1,T] \; \textrm{and both}\\ \quad \; \; \rightarrow \ind_{i,sup}(t-k)= 1 \; \textrm{for}\; k \in[1,K] \\ \quad \; \; \rightarrow \ind_{i,sup}(t+k)= 1 \; \textrm{for}\; k \in[T-t,T] \\ \textrm{\textit{i.e almost satisfies pers. but some} $t+k$ \textit{is unobserved!}} \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+    %    \textrm{Persistent demand} \; \ind_{i,dem}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \ind_{i,dem}(t-k)=\ind_{i,dem}(t+k) = 1 \; \textrm{for}\; k \in[0,K] \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+    %    \textrm{Persistent supply} \; \ind_{i,sup}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \ind_{i,sup}(t-k)=\ind_{i,sup}(t+k) = 1 \; \textrm{for}\; k \in[0,K] \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+        \textrm{Persistent demand} \; \ind_{i,dem}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \; \ind_{i,dem}(t) + \mathlarger{\mathlarger{\sum}}_{k=1}^{K} \{ \ind_{i,dem}(t-k)+\ind_{i,dem}(t+k) \} \geq 2K \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+        \textrm{Persistent supply} \; \ind_{i,sup}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \; \ind_{i,sup}(t) + \mathlarger{\mathlarger{\sum}}_{k=1}^{K} \{ \ind_{i,sup}(t-k)+\ind_{i,sup}(t+k) \} \geq 2K \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+        \textrm{\textit{Ambiguous} demand} \; \ind_{i,dem}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; t\in [T-K+1,T] \; \textrm{and :}\\ \ind_{i,dem}(t) + \mathlarger{\mathlarger{\sum}}_{k=1}^{K} \ind_{i,dem}(t-k) + \ind_{t\neq T}\mathlarger{\mathlarger{\sum}}_{k=1}^{T-t}\ind_{i,dem}(t+k) \geq K+(T-t) \\ \textrm{\textit{i.e almost satisfies pers. but some date '} $t+k$ \textit{' is unobserved!}} \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+        \textrm{\textit{Ambiguous} supply} \; \ind_{i,dem}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; t\in [T-K+1,T] \; \textrm{and :}\\ \ind_{i,sup}(t) + \mathlarger{\mathlarger{\sum}}_{k=1}^{K} \ind_{i,sup}(t-k) + \ind_{t\neq T}\mathlarger{\mathlarger{\sum}}_{k=1}^{T-t}\ind_{i,sup}(t+k) \geq K+(T-t) \\ \textrm{\textit{i.e almost satisfies pers. but some date '} $t+k$ \textit{' is unobserved!}} \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+    %    \textrm{\textit{Ambiguous} demand} \; \ind_{i,dem}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; t\in [T-K+1,T] \; \textrm{and both}\\ \quad \; \; \rightarrow \ind_{i,dem}(t-k)= 1 \; \textrm{for}\; k \in[0,K] \\ \quad \; \; \rightarrow \ind_{i,dem}(t+k)= 1 \; \textrm{for}\; k \in[T-t,T] \\ \textrm{\textit{i.e almost satisfies pers. but some} $t+k$ \textit{is unobserved!}} \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+    %    \textrm{\textit{Ambiguous} supply} \; \ind_{i,sup}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; t\in [T-K+1,T] \; \textrm{and both}\\ \quad \; \; \rightarrow \ind_{i,sup}(t-k)= 1 \; \textrm{for}\; k \in[0,K] \\ \quad \; \; \rightarrow \ind_{i,sup}(t+k)= 1 \; \textrm{for}\; k \in[T-t,T] \\ \textrm{\textit{i.e almost satisfies pers. but some} $t+k$ \textit{is unobserved!}} \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
         %\textrm{\textit{Ambiguous} demand} \; \ind_{i,dem}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; \ind_{i,dem}(t-k)=\ind_{i,dem}(t+k^{'}) = 1 \; \textrm{for}\; k \in[1,K] \; \textrm{and} \\ \quad \; \; k^{'}\in[1,K_{<T}] \;\textrm{where}\; t+K_{t}=T \;, 0\le K_{t}<K \\ \quad \; \; \textrm{i.e} \; t\in [T-K+1,T]\\ 0 \quad \textrm{otherwise} \end{cases} \\ 
     \end{align*}
     \item[3.] If neither condition is verified, month $t$ is simply classified as transitory demand (if $\ind_{i,dem}(t)=1$) or transitory supply.
 \end{itemize}
 
-Hence, when $K=3$, only the last three observations ($t\in[T-2,T]=[T-K+1,T]$) can be categorized as ambiguous (ambiguous in the sense of undetermined between transitory and persistent). 
-For instance, once data for date $T+1$ is observed the classfication of month $T-2$ -had it been classified as ambiguous- is potentially changed if it either satisfies the "complete" persistent supply or demand criterion. 
+The persistent demand(supply) lebeling simply asserts that for a given month $t$, in the window of the three previous and next months, at least $2K$ have been classified as experiencing a demand(supply) shock.
+For instance when $K=3$ this checks that for Septembre 2019, between June and Decembre 2019 (7-month window), at least 6 have been labeled as demand-driven (for persistent demand and vice versa).
+\bigbreak
+The \textit{ambiguous} (ambiguous in the sense of undetermined between transitory and persistent) labeling is pretty similar to the persistent but is only applied to the last $K$ observations. 
+It aims at labeling the months for which we cannot apply the full rule because the forward-looking part simply sums over unobserved data.
+For instance, when $K=3$, only the last three observations ($t\in[T-2,T]=[T-K+1,T]$) can be categorized as ambiguous.
+When assessing the label for $t=T-2$ the condition for ambiguous demand checks if in the range of: the previous 3 months + current month + next $T-(T-2)=2$ available months, at least $3+(T-(T-2))=5$ have been labeled as experiencing a demand shock.
+\bigbreak
+The labeling is retroactive as once data for the date $t=T+1$ is observed the classfication of month $T-2$ -had it been classified as ambiguous- is potentially changed if it either satisfies the "complete" persistent supply or demand criterion. 
 Otherwise it is labeled as transitory.
+\bigbreak
+\textit{NB1: with the sample denoted }$[1,T]$\textit{ we start the classification at date }$t=1+K$
 
-\textit{NB1: with this in mind, note that with the sample denoted }$[1,T]$\textit{ we start the classification at date }$t=1+K$
-
-\textit{NB2: the classification suggested above does not work for the parametric approach, as the latter does not have dummy variables for supply-demand}
+\textit{NB2: the classification suggested above does not work for the parametric approach, as the latter simply does not have dummy variables for supply-demand classfication but rather probabilities, which impedes the counting rule put in place.}
 
 
 \clearpage
