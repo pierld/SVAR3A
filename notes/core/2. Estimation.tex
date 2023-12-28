@@ -92,15 +92,20 @@ We propose the following algorithm:
     \begin{align*}
         \textrm{Persistent demand} \; \ind_{i,dem}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \ind_{i,dem}(t-k)=\ind_{i,dem}(t+k) = 1 \; \textrm{for}\; k \in[1,K] \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
         \textrm{Persistent supply} \; \ind_{i,sup}^{pers}(t) &= \begin{cases} 1 \quad \textrm{if} \; \ind_{i,sup}(t-k)=\ind_{i,sup}(t+k) = 1 \; \textrm{for}\; k \in[1,K] \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
-        \textrm{\textit{Ambiguous} demand} \; \ind_{i,dem}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; t\in [T-K+1,T] \; \textrm{and both}\\ \quad \; \; \rightarrow \ind_{i,dem}(t-k)= 1 \; \textrm{for}\; k \in[1,K] \\ \quad \; \; \rightarrow \ind_{i,dem}(t-k^{'})= 1 \; \textrm{for}\; k^{'} \in[T-t,T] \\ \textrm{\textit{i.e almost satisfies pers. but some} $t+k$ \textit{is unobserved!}} \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
-        \textrm{\textit{Ambiguous} supply} \; \ind_{i,sup}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; t\in [T-K+1,T] \; \textrm{and both}\\ \quad \; \; \rightarrow \ind_{i,sup}(t-k)= 1 \; \textrm{for}\; k \in[1,K] \\ \quad \; \; \rightarrow \ind_{i,sup}(t-k^{'})= 1 \; \textrm{for}\; k^{'} \in[T-t,T] \\ \textrm{\textit{i.e almost satisfies pers. but some} $t+k$ \textit{is unobserved!}} \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+        \textrm{\textit{Ambiguous} demand} \; \ind_{i,dem}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; t\in [T-K+1,T] \; \textrm{and both}\\ \quad \; \; \rightarrow \ind_{i,dem}(t-k)= 1 \; \textrm{for}\; k \in[1,K] \\ \quad \; \; \rightarrow \ind_{i,dem}(t+k)= 1 \; \textrm{for}\; k \in[T-t,T] \\ \textrm{\textit{i.e almost satisfies pers. but some} $t+k$ \textit{is unobserved!}} \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
+        \textrm{\textit{Ambiguous} supply} \; \ind_{i,sup}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; t\in [T-K+1,T] \; \textrm{and both}\\ \quad \; \; \rightarrow \ind_{i,sup}(t-k)= 1 \; \textrm{for}\; k \in[1,K] \\ \quad \; \; \rightarrow \ind_{i,sup}(t+k)= 1 \; \textrm{for}\; k \in[T-t,T] \\ \textrm{\textit{i.e almost satisfies pers. but some} $t+k$ \textit{is unobserved!}} \\ 0 \quad \textrm{otherwise} \end{cases} \\ 
         %\textrm{\textit{Ambiguous} demand} \; \ind_{i,dem}^{abg}(t) &= \begin{cases} 1 \quad \textrm{if} \; \ind_{i,dem}(t-k)=\ind_{i,dem}(t+k^{'}) = 1 \; \textrm{for}\; k \in[1,K] \; \textrm{and} \\ \quad \; \; k^{'}\in[1,K_{<T}] \;\textrm{where}\; t+K_{t}=T \;, 0\le K_{t}<K \\ \quad \; \; \textrm{i.e} \; t\in [T-K+1,T]\\ 0 \quad \textrm{otherwise} \end{cases} \\ 
     \end{align*}
     \item[3.] If neither condition is verified, month $t$ is simply classified as transitory demand (if $\ind_{i,dem}(t)=1$) or transitory supply.
 \end{itemize}
 
-Hence, when $K=3$, the last three observations ($t\in[T-2,T]=[T-K+1,T]$) are automatically categorized as ambiguous (ambiguous in the sense of undetermined between transitory and persistent). 
-Once data for date $T+1$ is observed, the classfication of month $T-2$ is changed if it either satisfies the "complete" persistent supply or demand criterion. Otherwise remains as transitory.
+Hence, when $K=3$, only the last three observations ($t\in[T-2,T]=[T-K+1,T]$) can be categorized as ambiguous (ambiguous in the sense of undetermined between transitory and persistent). 
+For instance, once data for date $T+1$ is observed the classfication of month $T-2$ -had it been classified as ambiguous- is potentially changed if it either satisfies the "complete" persistent supply or demand criterion. 
+Otherwise it is labeled as transitory.
+
+\textit{NB1: with this in mind, note that with the sample denoted }$[1,T]$\textit{ we start the classification at date }$t=1+K$
+
+\textit{NB2: the classification suggested above does not work for the parametric approach, as the latter does not have dummy variables for supply-demand}
 
 
 \clearpage

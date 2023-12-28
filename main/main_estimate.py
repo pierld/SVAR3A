@@ -483,27 +483,24 @@ class CPIlabel:
             self.shapiro_bic = pd.DataFrame()
             self.shapiro_aic_sec = None
             self.shapiro_bic_sec = None
-            self.meth["base"] = ['dem','sup']
             if shap_robust:
                 self.shapiro_aic_r = pd.DataFrame()
                 self.shapiro_bic_r = pd.DataFrame()
                 self.shapiro_aic_sec_r = None
                 self.shapiro_bic_sec_r = None
-                self.meth["j1"] = ['dem_j1','sup_j1']
-                self.meth["j2"] = ['dem_j2','sup_j2']
-                self.meth["j3"] = ['dem_j3','sup_j3']
-                self.meth["param"] = ['dem_param','sup_param']
         else:
             self.shapiro = pd.DataFrame()
             self.shapiro_sec = None
-            self.meth["base"] = ['dem','sup']
             if shap_robust:
                 self.shapiro_r = pd.DataFrame()
                 self.shapiro_sec_r = None
-                self.meth["j1"] = ['dem_j1','sup_j1']
-                self.meth["j2"] = ['dem_j2','sup_j2']
-                self.meth["j3"] = ['dem_j3','sup_j3']
-                self.meth["param"] = ['dem_param','sup_param']
+                
+        self.meth["base"] = ['dem','sup']
+        if shap_robust:
+            self.meth["j1"] = ['dem_j1','sup_j1']
+            self.meth["j2"] = ['dem_j2','sup_j2']
+            self.meth["j3"] = ['dem_j3','sup_j3']
+            self.meth["param"] = ['dem_param','sup_param']
         #*-----        
         self.CPIdec = self.CPI_decompose()
         self.demand_corr_v = self.demand_corr_v.corr()
@@ -538,6 +535,20 @@ class CPIlabel:
                     return("dem_shapiro_"+col.split("_")[1])
                 else:
                     return("sup_shapiro_"+col.split("_")[1])
+        
+        #! marche pas encore bien
+        def pers_trans_perso(self,df,K=3):
+            """
+            df = output of sector_estimation
+            """
+            x = pd.DataFrame(columns=df.columns,index=df.index)
+            
+            #*Persitent supply-demand
+            for key in self.meth.keys():
+                for i in range(K,len(df[self.meth[key].dropna()])-K):
+                    x.loc[df.index[i]][self.meth[key]] = df[i-K:i+K+1].sum()==2*K+1
+            return x
+
                 
         c = []
         L_col = len(self.meta.price.columns)
@@ -791,7 +802,9 @@ class CPIlabel:
 #? =====================================================================
 meta = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="France")
 cpi = CPIlabel(meta=meta)
-#t1 = sector_estimation(meta=meta,col=64,shapiro_robust=True)
+t1 = sector_estimation(meta=meta,col=64,shapiro_robust=True)
+
+
 #%%
 """
 def retrieve_dates(df):

@@ -1,5 +1,5 @@
 # Fdb version 4
-["pdflatex"] 1703612390 "/Users/prld/git/SVAR3A/notes/main.tex" "main.pdf" "main" 1703612392 0
+["pdflatex"] 1703761243 "/Users/prld/git/SVAR3A/notes/main.tex" "main.pdf" "main" 1703761245 0
   "/Users/prld/git/SVAR3A/notes/main.tex" 1703612389 942 9c67e655171e64a97f345d96996fcde8 ""
   "/usr/local/texlive/2023/texmf-dist/fonts/enc/dvips/sourceserifpro/a_5mjl2d.enc" 1536266730 2996 4eac4f75d003875749efc5dde4ee7502 ""
   "/usr/local/texlive/2023/texmf-dist/fonts/enc/dvips/sourceserifpro/a_lseshj.enc" 1536266730 3319 27982942a2c1dc0cdff8083e40e6f28f ""
@@ -69,7 +69,6 @@
   "/usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb" 1248133631 30251 6afa5cb1d0204815a708a080681d4674 ""
   "/usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb" 1248133631 32722 d7379af29a190c3f453aba36302ff5a9 ""
   "/usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb" 1248133631 32569 5e5ddc8df908dea60932f3c484a54c0d ""
-  "/usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb" 1248133631 32626 4f5c1b83753b1dd3a97d1b399a005b4b ""
   "/usr/local/texlive/2023/texmf-dist/fonts/type1/public/amsfonts/euler/eurm10.pfb" 1336858727 22644 de44b1031364c5f57164f2249f1302c5 ""
   "/usr/local/texlive/2023/texmf-dist/fonts/type1/public/bbold-type1/bbold10.pfb" 1290383964 25452 d4e98a3bf6b13d4b7dcffd6302990a65 ""
   "/usr/local/texlive/2023/texmf-dist/fonts/type1/urw/symbol/usyr.pfb" 1136849748 33709 b09d2e140b7e807d3a97058263ab6693 ""
@@ -315,14 +314,14 @@
   "/usr/local/texlive/2023/texmf-var/web2c/pdftex/pdflatex.fmt" 1684794436 7883455 32e0f4515fedc3740dab0e872a92dfba ""
   "/usr/local/texlive/2023/texmf.cnf" 1678822455 577 1b2b1af17af2508fb20dd85783af4050 ""
   "core/1. Methodology.tex" 1703612214 7905 fd9655d84d7e90969ae59c012d288990 ""
-  "core/2. Estimation.tex" 1703611706 10334 011fdb63c2f0cc911a3875dd75a6396b ""
+  "core/2. Estimation.tex" 1703761243 10666 82244d85b95f51dfb5355b7728e104ca ""
   "core/3. Results.tex" 1703611678 501 7dc7ff32fa729e391679d1e546a979e0 ""
   "img/dem_heat.png" 1702580820 56235 a2e5db8bee83a90dedb0103aa6d08c57 ""
   "img/sup_heat.png" 1702580829 54209 39ac756196ca501533e880b1e25723cf ""
-  "main.aux" 1703612391 2861 2abdf43cf3ab800690be41adf1fc2bb8 "pdflatex"
-  "main.out" 1703612391 2038 14c0072b904b0fd3ec8f5599b729f0a5 "pdflatex"
+  "main.aux" 1703761245 2861 2abdf43cf3ab800690be41adf1fc2bb8 "pdflatex"
+  "main.out" 1703761245 2038 14c0072b904b0fd3ec8f5599b729f0a5 "pdflatex"
   "main.tex" 1703612389 942 9c67e655171e64a97f345d96996fcde8 ""
-  "main.toc" 1703612391 1001 f5e942b6fc4fe87c0af04fa26e953377 "pdflatex"
+  "main.toc" 1703761245 1001 f5e942b6fc4fe87c0af04fa26e953377 "pdflatex"
   "math.sty" 1702547977 5373 b1761e90995704a89ca6da691c35eec9 ""
   "notes.sty" 1702545759 652 c7af60f8ea3cf432b29809ed1cd4b66c ""
   "paper.sty" 1703425780 5546 0e773d94682a2edb312b233e7cea5086 ""
