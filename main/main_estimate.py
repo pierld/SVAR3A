@@ -124,7 +124,7 @@ class CPIframe:
                 x = x.dropna()
                 x.coicop = sec
                 x.col = col_num
-                x.index = pd.to_datetime(x.index)
+                x.index = pd.to_datetime(x.index,format="%Y-%m")
                 return x
             
             else:
@@ -137,7 +137,7 @@ class CPIframe:
                 x = x.dropna()
                 x.coicop = sec
                 x.col = col_num
-                x.index = pd.to_datetime(x.index)
+                x.index = pd.to_datetime(x.index,format="%Y-%m")
                 return x
         
         else:
@@ -145,7 +145,7 @@ class CPIframe:
             sec = list(x.loc['HICP'])[-1]
             x = x.drop(['HICP'],axis=0)
             x.coicop = sec
-            x.index = pd.to_datetime(x.index)
+            x.index = pd.to_datetime(x.index,format="%Y")
             return x
     
     def inflation(self):
@@ -170,7 +170,7 @@ class CPIframe:
     def sector_inf(self,col_num,drop=True):
         x = pd.DataFrame()
         x['inflation'] = self.inflation[[col_num]]
-        x.index = pd.to_datetime(x.index)
+        x.index = pd.to_datetime(x.index,format="%Y")
         x["temp"] = x.index.year
         try:
             x["weight"] = x["temp"].apply(lambda x: self.weights.loc[str(x),col_num])
@@ -537,6 +537,7 @@ class CPIlabel:
                     return("sup_shapiro_"+col.split("_")[1])
         
         #! marche pas encore bien
+        '''
         def pers_trans_perso(self,df,K=3):
             """
             df = output of sector_estimation
@@ -567,7 +568,7 @@ class CPIlabel:
             for col in x.columns:
                 x[col] = x[col]*t1.inflation['infw']
             return x.dropna(how="all")
-
+        '''
                 
         c = []
         L_col = len(self.meta.price.columns)
@@ -821,7 +822,7 @@ class CPIlabel:
 #? =====================================================================
 meta = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="France")
 cpi = CPIlabel(meta=meta)
-t1 = sector_estimation(meta=meta,col=64,shapiro_robust=True)
+#t1 = sector_estimation(meta=meta,col=64,shapiro_robust=True)
 
 
 #%%
