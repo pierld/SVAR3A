@@ -12,6 +12,8 @@ with open(Path(__file__).parents[0] / "style.css") as f:
 
 st.sidebar.header('Model parameters')
 
+st.sidebar.info("Classifier can take up to 1 minute")
+
 country = st.sidebar.selectbox('Country', ('EU27','France','Germany','Spain'),index=None) 
 unclass = st.sidebar.selectbox('Show unclassified', (True,False), index=0)
 year = st.sidebar.selectbox('Chart start year date:',[i for i in range(2023,2000,-1)],index=8)
@@ -68,12 +70,15 @@ def plot_stack(df,col=None,method="shapiro",robust=None,unclassified:bool=True,y
             #cols = self.meth[robust].copy()
             cols = col[robust].copy()
         leg = ['Demand','Supply']
-
+    elif method=="perso":
+        cols = ["dem_pers","sup_pers","dem_trans","sup_trans","dem_abg","sup_abg"]
+        leg = ["Persistent demand","Persistent supply","Transitory demand","Transitory supply","Ambiguous demand","Ambiguous supply"]
+        color = ['mediumseagreen','brown','royalblue','orange',"yellowgreen","darksalmon"]
     else:
         if robust=="complex":
-            cols = ["dem_pers","dem_trans","sup_pers","sup_trans"]
-            leg = ["Persistent demand","Transitory demand","Persistent supply","Transitory supply"]
-            color = ['mediumseagreen','royalblue','brown','orange']
+            cols = ["dem_pers","sup_pers","dem_trans","sup_trans"]
+            leg = ["Persistent demand","Persistent supply","Transitory demand","Transitory supply"]
+            color = ['mediumseagreen','brown','royalblue','orange']
         else:
             cols = ["dem","sup"]
             leg = ['Demand','Supply']
@@ -115,19 +120,27 @@ if country==None:
 if country!=None:
     try:
         cpi = cpi_classifier(country=country,order=order,robust=robust)
-
-        #*(Baseline)
+        
+        #*---(Proposed classification)
+        st.markdown('### Proposed classification')
+        perso_base = plot_stack(df=cpi.perso,method="perso",unclassified=unclass,year=year)
+        st.plotly_chart(perso_base,use_container_width=True)
+        #st.dataframe(data=cpi.perso)
+        
+        #*---(Baseline)
         st.markdown('### Baseline Shapiro classification')
         if order=="auto":
+            #plot AIC selected model
             shapiro_base = plot_stack(df=cpi.shapiro_aic,col=cpi.meth,method="shapiro",robust=None,unclassified=unclass,year=year)
         else:
             shapiro_base = plot_stack(df=cpi.shapiro,col=cpi.meth,method="shapiro",robust=None,unclassified=unclass,year=year)
         st.plotly_chart(shapiro_base,use_container_width=True)
+        
         st.markdown('### Baseline Sheremirov classification')
         sherem_base = plot_stack(df=cpi.sheremirov,method="sheremirov",robust=None,unclassified=unclass,year=year)
         st.plotly_chart(sherem_base,use_container_width=True)
         
-        #*(Cross)
+        #*---(Cross)
         st.markdown('### Cross-correlations')
         c1, c2 = st.columns(2)
         with c1:
@@ -140,15 +153,22 @@ if country!=None:
             st.pyplot(sup_corr)
         
         if robust:
-            st.markdown('### Robust Sheremirov classification')
-            sherem_r = plot_stack(df=cpi.sheremirov,method="sheremirov",robust="complex",unclassified=unclass,year=year)
-            st.plotly_chart(sherem_r,use_container_width=True)
+            #*---(Robust)
             st.markdown('### Robust Shapiro classification '+"["+shap_rob_plot+"]")
             if order=="auto":
+                #plot AIC selected model
                 shapiro_r = plot_stack(df=cpi.shapiro_aic_r,col=cpi.meth,method="shapiro",robust=shap_rob_plot,unclassified=unclass,year=year)
             else:
                 shapiro_r = plot_stack(df=cpi.shapiro_r,col=cpi.meth,method="shapiro",robust=shap_rob_plot,unclassified=unclass,year=year)
+                
             st.plotly_chart(shapiro_r,use_container_width=True)
+            st.markdown('### Robust Sheremirov classification')
+            sherem_r = plot_stack(df=cpi.sheremirov,method="sheremirov",robust="complex",unclassified=unclass,year=year)
+            st.plotly_chart(sherem_r,use_container_width=True)
+            st.markdown('### Proposed classification')
+            st.plotly_chart(perso_base,use_container_width=True)
+            
+            
     except:
         st.error('Error in code',icon="🚨")
 

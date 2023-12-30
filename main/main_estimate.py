@@ -227,6 +227,7 @@ class sector_estimation:
                  shapiro_robust:bool=False,
                  sheremirov:bool=True,
                  sheremirov_window:list=[1,11],
+                 perso_K:int=3,
                  classify_inflation=True):
         """
         Args:
@@ -249,13 +250,19 @@ class sector_estimation:
         """
         self.meta = meta    
         self.col = col
-        
+        self.meth={}
+        self.meth["base"] = ['dem','sup']
+        if shapiro_robust:
+            self.meth["j1"] = ['dem_j1','sup_j1']
+            self.meth["j2"] = ['dem_j2','sup_j2']
+            self.meth["j3"] = ['dem_j3','sup_j3']
+            self.meth["param"] = ['dem_param','sup_param']
+        self.perso_K=perso_K
         #* VAR model will use log-transformed first diff and demeaned data 
         self.sector = meta.sector(col_num=col,transform=True)
         self.inflation = meta.sector_inf(col_num=col,drop=True)
         #!-----
         self.classify_inflation = classify_inflation            
-        
         #! Flag sector
         if len(self.sector) <= 24:
             raise ValueError("Too little data for sector {0}".format(self.col))
@@ -285,6 +292,12 @@ class sector_estimation:
                 if shapiro_robust:
                     self.aic.shapiro_robust = self.shapiro_robust(model_resid=self.aic.resid)
                     self.bic.shapiro_robust = self.shapiro_robust(model_resid=self.bic.resid)
+            #? Perso
+            if shapiro and not shapiro_robust:
+                self.perso = self.perso_label(df=self.aic.shapiro,K=self.perso_K)
+            elif shapiro and shapiro_robust:
+                self.perso = self.perso_label(df=self.aic.shapiro_robust,K=self.perso_K)
+            else:pass
         else:
             self.estimate = self.estimation['fixed']
             #? Shapiro
@@ -292,6 +305,11 @@ class sector_estimation:
                 self.estimate.shapiro = self.shapiro_label(model_resid=self.estimate.resid)
                 if shapiro_robust:
                     self.estimate.shapiro_robust = self.shapiro_robust(model_resid=self.estimate.resid)
+            if shapiro and not shapiro_robust:
+                self.perso = self.perso_label(df=self.estimate.shapiro,K=self.perso_K)
+            elif shapiro and shapiro_robust:
+                self.perso = self.perso_label(df=self.estimate.shapiro_robust,K=self.perso_K)
+            else:pass
         #? Sheremirov
         if sheremirov:
             self.sheremirov_window = sheremirov_window
@@ -413,6 +431,36 @@ class sector_estimation:
                 x[col] = x[col]*self.inflation['infw']
         return x
 
+    def perso_label(self,df,K=3):
+        """
+        df = output of sector_estimation
+        """
+        dc = {}
+        for key in self.meth.keys():
+            if key!="param":
+                for typ in ["pers","trans","abg"]:
+                    dc[f"{key}_{typ}"]=[f"{prefix}_{typ}" for prefix in self.meth[key]]
+        cols = [item for sub in dc.keys() for item in dc[sub]]
+                    
+        x = pd.DataFrame(index=df.index,columns=cols)
+        dfc = df.copy().dropna()
+        
+        for key in self.meth.keys():
+            if key!="param":
+                temp = dfc[self.meth[key]]!=0
+                #?Persistent & transitory
+                for i in range(K,len(temp)-K):
+                    x.loc[dfc.index[i]][dc[f"{key}_pers"]] = temp.iloc[i-K:i+K+1][self.meth[key]].sum()>=2*K
+                    x.loc[dfc.index[i]][dc[f"{key}_trans"]] = (x.loc[dfc.index[i]][dc[f"{key}_pers"]]==False).values * (temp.loc[dfc.index[i]][self.meth[key]]).values
+                #?Ambiguous
+                Lt = len(temp)-1
+                for i in range(0,K):
+                    x.loc[dfc.index[Lt-i]][dc[f"{key}_abg"]] = temp.iloc[Lt-i-K::][self.meth[key]].sum()>=K+i
+                    x.loc[dfc.index[Lt-i]][dc[f"{key}_trans"]] = (x.loc[dfc.index[Lt-i]][dc[f"{key}_abg"]]==False).values * (temp.loc[dfc.index[Lt-i]][self.meth[key]]).values
+        x = x.reindex(self.meta.dates)
+        for col in x.columns:
+            x[col] = x[col]*self.inflation['infw']
+        return x.dropna(how="all")
 
 #! ////////////////////////////////////////////////////
 #! ////////////////////////////////////////////////////
@@ -476,6 +524,8 @@ class CPIlabel:
         self.demand_corr_v = pd.DataFrame()
         self.supply_corr_v = pd.DataFrame()
         #*-----
+        self.perso = pd.DataFrame()
+        self.perso_sec = None
         self.sheremirov = pd.DataFrame()
         self.sheremirov_sec = None
         if self.order=="auto":
@@ -535,41 +585,7 @@ class CPIlabel:
                     return("dem_shapiro_"+col.split("_")[1])
                 else:
                     return("sup_shapiro_"+col.split("_")[1])
-        
-        #! marche pas encore bien
-        '''
-        def pers_trans_perso(self,df,K=3):
-            """
-            df = output of sector_estimation
-            """
-            dc = {}
-            for key in self.meth.keys():
-                if key!="param":
-                    for typ in ["pers","trans","abg"]:
-                        dc[f"{key}_{typ}"]=[f"{prefix}_{typ}" for prefix in self.meth[key]]
-            cols = [item for sub in dc.keys() for item in dc[sub]]
-                        
-            x = pd.DataFrame(index=df.index,columns=cols)
-            dfc = df.copy().dropna()
-            
-            for key in self.meth.keys():
-                if key!="param":
-                    temp = dfc[self.meth[key]]!=0
-                    #?Persistent & transitory
-                    for i in range(K,len(temp)-K):
-                        x.loc[dfc.index[i]][dc[f"{key}_pers"]] = temp.iloc[i-K:i+K+1][self.meth[key]].sum()>=2*K
-                        x.loc[dfc.index[i]][dc[f"{key}_trans"]] = (x.loc[dfc.index[i]][dc[f"{key}_pers"]]==False)
-                    #?Ambiguous
-                    Lt = len(temp)-1
-                    for i in range(0,K):
-                        x.loc[dfc.index[Lt-i]][dc[f"{key}_abg"]] = temp.iloc[Lt-i-K::][self.meth[key]].sum()>=K+i
-                        x.loc[dfc.index[Lt-i]][dc[f"{key}_trans"]] = (x.loc[dfc.index[Lt-i]][dc[f"{key}_abg"]]==False).values * (temp.loc[dfc.index[Lt-i]][self.meth[key]]).values
-            x = x.reindex(t1.meta.dates)
-            for col in x.columns:
-                x[col] = x[col]*t1.inflation['infw']
-            return x.dropna(how="all")
-        '''
-                
+         
         c = []
         L_col = len(self.meta.price.columns)
         duo = ['Sector','Component']
@@ -583,13 +599,13 @@ class CPIlabel:
             temp_shapiro = {}
             if self.shap_robust:
                 temp_shapiro_r = {}
+        temp_perso={}
         temp_sheremirov = {}
 
         #*-----ESTIMATION
         with tqdm(total=L_col, ascii=True) as pbar:
             for col in range(0,L_col):
-                if self.meta.flag[col]==1:
-                    # Sector was flagged as missing some data
+                if self.meta.flag[col]==1: #Sector was flagged as missing some data
                     pass
                 else:
                     c.append(col)   
@@ -611,9 +627,10 @@ class CPIlabel:
                         if self.shap_robust:
                             temp_shapiro_r[col] = estimator.estimate.shapiro_robust
                     temp_sheremirov[col] = estimator.sheremirov
+                    temp_perso[col] = estimator.perso
                 pbar.update(1)
                 
-        #?-----SHAPIRO(2022)
+        #*-----SHAPIRO(2022)
         if self.order=="auto":              
             self.shapiro_aic_sec = pd.concat([x.transpose().stack() for x in temp_shapiro_aic.values()], keys=c, names=['Sector']).unstack()
             self.shapiro_aic_sec = self.shapiro_aic_sec.reindex(sorted(self.shapiro_aic_sec.columns),axis=1).transpose()
@@ -726,7 +743,7 @@ class CPIlabel:
                 self.demand_corr_v = pd.concat([self.demand_corr_v,corr_estime_r[[col for col in corr_estime_r.columns if "dem" in col]]],axis=1,join='inner')
                 self.supply_corr_v = pd.concat([self.supply_corr_v,corr_estime_r[[col for col in corr_estime_r.columns if "sup" in col]]],axis=1,join='inner')
 
-        #?-----SHEREMIROV(2022)
+        #*-----SHEREMIROV(2022)
         self.sheremirov_sec = pd.concat([x.transpose().stack() for x in temp_sheremirov.values()], keys=c, names=['Sector']).unstack()
         self.sheremirov_sec = self.sheremirov_sec.reindex(sorted(self.sheremirov_sec.columns),axis=1).transpose()
         self.sheremirov_sec.columns.names = duo
@@ -745,6 +762,21 @@ class CPIlabel:
         corr_sd_sher = self.sheremirov[["dem","sup"]].copy().rename(columns={"dem":"dem_sheremirov","sup":"sup_sheremirov"})
         self.demand_corr_v = pd.concat([self.demand_corr_v,corr_sd_sher[[col for col in corr_sd_sher.columns if "dem" in col]]],axis=1,join='inner')
         self.supply_corr_v = pd.concat([self.supply_corr_v,corr_sd_sher[[col for col in corr_sd_sher.columns if "sup" in col]]],axis=1,join='inner')
+        
+        #*-----perso
+        self.perso_sec = pd.concat([x.transpose().stack() for x in temp_perso.values()], keys=c, names=['Sector']).unstack()
+        self.perso_sec = self.perso_sec.reindex(sorted(self.perso_sec.columns),axis=1).transpose()
+        self.perso_sec.columns.names = duo
+        sample_perso = retrieve_dates(self.perso_sec)
+        cols_perso = list(self.perso_sec[0].columns)
+        
+        for col in cols_perso:
+            self.perso[col] = self.perso_sec.loc[:, self.perso_sec.columns.get_level_values('Component') == col].sum(axis=1).loc[sample_perso[0]:sample_perso[1]]
+        if self.annual:
+            self.perso = self.perso.rolling(12).sum().dropna()
+            self.perso["total"] = self.meta.overall.rolling(12).sum().loc[self.perso.index]
+        self.perso["unclassified"] = self.perso["total"] - self.perso["dem_pers"] - self.perso["sup_pers"] - self.perso["dem_trans"] - self.perso["sup_trans"] - self.perso["dem_abg"] - self.perso["sup_abg"]
+        
         return
     
     def correlation(self,comp:str):
@@ -820,8 +852,8 @@ class CPIlabel:
 
 #%%
 #? =====================================================================
-meta = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="France")
-cpi = CPIlabel(meta=meta)
+#meta = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="France")
+#cpi = CPIlabel(meta=meta)
 #t1 = sector_estimation(meta=meta,col=64,shapiro_robust=True)
 
 
