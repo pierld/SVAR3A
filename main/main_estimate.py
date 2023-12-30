@@ -541,13 +541,32 @@ class CPIlabel:
             """
             df = output of sector_estimation
             """
-            x = pd.DataFrame(columns=df.columns,index=df.index)
-            
-            #*Persitent supply-demand
+            dc = {}
             for key in self.meth.keys():
-                for i in range(K,len(df[self.meth[key].dropna()])-K):
-                    x.loc[df.index[i]][self.meth[key]] = df[i-K:i+K+1].sum()==2*K+1
-            return x
+                if key!="param":
+                    for typ in ["pers","trans","abg"]:
+                        dc[f"{key}_{typ}"]=[f"{prefix}_{typ}" for prefix in self.meth[key]]
+            cols = [item for sub in dc.keys() for item in dc[sub]]
+                        
+            x = pd.DataFrame(index=df.index,columns=cols)
+            dfc = df.copy().dropna()
+            
+            for key in self.meth.keys():
+                if key!="param":
+                    temp = dfc[self.meth[key]]!=0
+                    #?Persistent & transitory
+                    for i in range(K,len(temp)-K):
+                        x.loc[dfc.index[i]][dc[f"{key}_pers"]] = temp.iloc[i-K:i+K+1][self.meth[key]].sum()>=2*K
+                        x.loc[dfc.index[i]][dc[f"{key}_trans"]] = (x.loc[dfc.index[i]][dc[f"{key}_pers"]]==False)
+                    #?Ambiguous
+                    Lt = len(temp)-1
+                    for i in range(0,K):
+                        x.loc[dfc.index[Lt-i]][dc[f"{key}_abg"]] = temp.iloc[Lt-i-K::][self.meth[key]].sum()>=K+i
+                        x.loc[dfc.index[Lt-i]][dc[f"{key}_trans"]] = (x.loc[dfc.index[Lt-i]][dc[f"{key}_abg"]]==False).values * (temp.loc[dfc.index[Lt-i]][self.meth[key]]).values
+            x = x.reindex(t1.meta.dates)
+            for col in x.columns:
+                x[col] = x[col]*t1.inflation['infw']
+            return x.dropna(how="all")
 
                 
         c = []
