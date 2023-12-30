@@ -4,7 +4,7 @@
 
 ### TLDR :
 
-* Deployed app : [SVAR3A](https://pierrerlld-svar3a-mainstreamlit-app-qy5le2.streamlit.app/?embed_options=light_theme)
+* Deployed app : [SVAR3A](https://pierrerlld-svar3a-mainstreamlit-app-qy5le2.streamlit.app/)
 * Online code : [Colab](https://colab.research.google.com/drive/1R9Zd2tNL-X9Sup5v9i578EBx9vH_7_jL#scrollTo=g3Q5NZXjrgGp)
 * Create `conda` env and `pip install` dependencies in `requirements.txt`
 * Repord : [pdf](https://github.com/PierreRlld/SVAR3A/blob/main/notes/main.pdf)
