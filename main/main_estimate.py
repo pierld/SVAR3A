@@ -11,6 +11,9 @@ from statistics import NormalDist
 from tqdm import tqdm
 import matplotlib
 from pathlib import Path
+import plotly.tools as tls
+import plotly.graph_objects as go
+import plotly.express as px
 #%%
 # === Data (index = HICP & Qt without log transf.) ===
 """
@@ -848,6 +851,43 @@ class CPIlabel:
         ax.set_xticklabels(yrindex(ind))
         ax.legend(leg,loc = "upper left")
         ax.figure.set_facecolor('white')
+
+    def plot_stack_new(self,df,method="shapiro",robust=None,unclassified:bool=True,year:int=2015):
+                
+        if method=="shapiro":
+            color = ['cornflowerblue','indianred']
+            if robust is None:
+                cols = self.meth["base"].copy()
+                #cols = col["base"].copy()
+            else:
+                cols = self.meth[robust].copy()
+                #cols = col[robust].copy()
+            leg = ['Demand','Supply']
+        elif method=="perso":
+            cols = ["dem_pers","sup_pers","dem_trans","sup_trans","dem_abg","sup_abg"]
+            leg = ["Persistent demand","Persistent supply","Transitory demand","Transitory supply","Ambiguous demand","Ambiguous supply"]
+            color = ['mediumseagreen','brown','royalblue','orange',"yellowgreen","darksalmon"]
+        else:
+            if robust=="complex":
+                cols = ["dem_pers","sup_pers","dem_trans","sup_trans"]
+                leg = ["Persistent demand","Persistent supply","Transitory demand","Transitory supply"]
+                color = ['mediumseagreen','brown','royalblue','orange']
+            else:
+                cols = ["dem","sup"]
+                leg = ['Demand','Supply']
+                color = ['cornflowerblue','indianred']
+
+        if unclassified==True:
+            cols.append('unclassified')
+            leg.append('Unclassified')
+            color.append('darkgray')        
+        f = df[df.index.year>=year][cols+['total']]
+        f = f.rename(columns={cols[i]:leg[i] for i in range(len(cols))})
+        f = f.reset_index()
+        fig = px.bar(f,y=leg,x="index",labels={"index":"year","value":"%YoY HICP"},color_discrete_sequence=color)
+        fig.add_trace(trace=go.Scatter(x=f["index"],y=f["total"], name="Total",mode='lines+markers', line_color="black"))
+        #https://stackoverflow.com/questions/58188816/change-line-color-in-plotly
+        return fig
         
 
 #%%
