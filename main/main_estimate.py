@@ -14,6 +14,7 @@ from pathlib import Path
 import plotly.tools as tls
 import plotly.graph_objects as go
 import plotly.express as px
+
 #%%
 # === Data (index = HICP & Qt without log transf.) ===
 """
@@ -827,7 +828,12 @@ class CPIlabel:
             else:
                 cols = self.meth[robust].copy()
             leg = ['Total','Demand','Supply']
-
+            
+        elif method=="perso":
+            cols = ["dem_pers","sup_pers","dem_trans","sup_trans","dem_abg","sup_abg"]
+            leg = ["Total","Persistent demand","Persistent supply","Transitory demand","Transitory supply","Ambiguous demand","Ambiguous supply"]
+            color = ['mediumseagreen','brown','royalblue','orange',"yellowgreen","darksalmon"]
+            
         else:
             if robust=="complex":
                 cols = ["dem_pers","dem_trans","sup_pers","sup_trans"]
@@ -841,7 +847,8 @@ class CPIlabel:
         if unclassified==True:
             cols.append('unclassified')
             leg.append('Unclassified')
-            color.append('darkgray')      
+            color.append('darkgray')
+                  
         fig = plt.figure(figsize=(20, 9))  
         f = df[df.index.year>year][cols+['total']]
         ind = f.index
@@ -863,10 +870,12 @@ class CPIlabel:
                 cols = self.meth[robust].copy()
                 #cols = col[robust].copy()
             leg = ['Demand','Supply']
+            
         elif method=="perso":
             cols = ["dem_pers","sup_pers","dem_trans","sup_trans","dem_abg","sup_abg"]
             leg = ["Persistent demand","Persistent supply","Transitory demand","Transitory supply","Ambiguous demand","Ambiguous supply"]
             color = ['mediumseagreen','brown','royalblue','orange',"yellowgreen","darksalmon"]
+            
         else:
             if robust=="complex":
                 cols = ["dem_pers","sup_pers","dem_trans","sup_trans"]
@@ -880,12 +889,13 @@ class CPIlabel:
         if unclassified==True:
             cols.append('unclassified')
             leg.append('Unclassified')
-            color.append('darkgray')        
+            color.append('darkgray') 
+                   
         f = df[df.index.year>=year][cols+['total']]
         f = f.rename(columns={cols[i]:leg[i] for i in range(len(cols))})
         f = f.reset_index()
         fig = px.bar(f,y=leg,x="index",labels={"index":"year","value":"%YoY HICP"},color_discrete_sequence=color)
-        fig.add_trace(trace=go.Scatter(x=f["index"],y=f["total"], name="Total",mode='lines+markers', line_color="black"))
+        fig.add_trace(trace=go.Scatter(x=f["index"],y=f["total"], name="Total", mode='lines+markers', line_color="black"))
         #https://stackoverflow.com/questions/58188816/change-line-color-in-plotly
         return fig
         
