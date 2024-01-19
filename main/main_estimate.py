@@ -902,9 +902,9 @@ class CPIlabel:
 
 #%%
 #? =====================================================================
-#meta = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="France")
-#cpi = CPIlabel(meta=meta)
-#t1 = sector_estimation(meta=meta,col=64,shapiro_robust=True)
+meta = CPIframe(df_q_index=df_q_index, df_p_index=df_p_index, df_w=df_w, country="France")
+cpi = CPIlabel(meta=meta)
+t1 = sector_estimation(meta=meta,col=21,shapiro_robust=True)
 
 
 #%%
