@@ -102,6 +102,7 @@ def correlation(df):
     sns.heatmap(df, annot=True, fmt='.2f', cmap="BuPu", linewidths=0.3, vmax=1, mask=mask, ax=ax)
     return fig
 
+# Mise en cache
 @st.cache_resource
 def cpi_classifier(country,order,robust):
     if country!=None:
