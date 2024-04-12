@@ -1,12 +1,20 @@
+#=====================================================#
 import streamlit as st
 import plotly.tools as tls
 import plotly.graph_objects as go
 import plotly.express as px
 from main_estimate import *
+#=====================================================#
+
+'''
+cd main
+streamlit run streamlit_app.py
+'''
 
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
 
-#=======================#
+#=====================================================#
+#=====================================================#
 with open(Path(__file__).parents[0] / "style.css") as f:
     st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
