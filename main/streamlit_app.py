@@ -6,10 +6,10 @@ import plotly.express as px
 from main_estimate import *
 #=====================================================#
 
-'''
-cd main
-streamlit run streamlit_app.py
-'''
+#---
+#cd main
+#streamlit run streamlit_app.py
+#---
 
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
 
