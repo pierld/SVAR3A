@@ -6,17 +6,18 @@ import plotly.express as px
 from main_estimate import *
 #=====================================================#
 
-#---
-#cd main
-#streamlit run streamlit_app.py
-#---
+#? ---
+#? cd main
+#? streamlit run streamlit_app.py
+#? ---
 
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
 
-#=====================================================#
-#=====================================================#
 with open(Path(__file__).parents[0] / "style.css") as f:
     st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+#=====================================================#
+#=====================================================#
 
 st.sidebar.header('Model parameters')
 
